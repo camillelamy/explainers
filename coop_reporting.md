@@ -114,4 +114,28 @@ the following body:
 
 > Note that *effective policy* can be *same-origin-plus-coep* even though this value cannot be set through the Cross-Origin-Opener-Policy header alone.
 
-This reports can also be sent in report-only mode. 
+If a redirect response specifies a *reporting endpoint* in its
+Cross-Origin-Opener-Policy or Cross-Origin-Opener-Policy-Report-Only header and
+its COOP *value* or *report only value* would cause a browsing context group
+switch, we should also send a violation report to its endpoint (with the
+redirect reponse's URL).
+
+These reports can also be sent in report-only mode. In that case, we need to
+compute that a browsing context group switch would have happened if we had
+enforced the *report only value* of COOP. To do that when navigating to a page with report only COOP, we check if:
+- the previous document COOP and the navigation report only COOP require a browsing context group switch
+- the previous document report only COOP and the navigation report only COOP require a browsing context group switch
+
+If both checks require a browsing context group switch, we send a violation
+report for *browsing contex group switch due to a navigation to the page with
+COOP reporting*.
+
+> This allows a website to set the same report only COOP on all its pages and not get a violation report when navigating from one to another.
+
+Similarly, when navigating away from a page with report only COOP, we check if:
+- the current document report only COOP and the navigation COOP require a browsing context group switch
+- the current document report only COOP and the navigation report only COOP require a browsing context group switch
+
+If both checks require a browsing context group switch, we send a violation
+report for *browsing context group switch due to navigating away from the page
+with COOP reporting*.
