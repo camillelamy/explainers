@@ -139,3 +139,60 @@ Similarly, when navigating away from a page with report only COOP, we check if:
 If both checks require a browsing context group switch, we send a violation
 report for *browsing context group switch due to navigating away from the page
 with COOP reporting*.
+
+### Report blocked accesses to other windows by the COOP page
+
+The next step in reporting is to add reporting of accesses to other windows
+made by the COOP page that were blocked because COOP triggered a browsing
+context group switch. Similarly, in report-only mode, we should report accesses
+the page makes to other windows that would be blocked if COOP were enforced.
+
+To identify when to send these reports, we need to add a set *browsingContextsToNotifyOfAccess* to top-level
+**BrowsingContext**. It will contain pairs of *BrowsingContexts* and a boolean *reportOnly*.
+
+Then we modify the **obtain a new browsing context** step defined in COOP (this
+step happens when COOP triggers a Browsing Context Group switch):
+1.  When the navigation's **cross-origin opener policy** has a *reporting endpoint* and *browsingContext* (the current browsing context) has an opener, we create *newBrowsingContext* with that opener and mark the opener as closed. We add *newBrowsingContext* to the opener's set of *browsingContextsToNotifyOfAccess*.
+2. For all top-level **browsing contexts** in *browsingContext*'s *browsingContextGroup* we check if their **cross-origin opener policy** has a *reporting endpoint*. We add all those who do to *browsingContext*'s set of *browsingContextsToNotifyOfAccess*.
+3. If *browsingContext*'s set of *browsingContextsToNotifyOfAccess* is not empty, instead of discarding it we only discard its document.
+
+Step 1 above allows us to capture the COOP page's accesses to its opener. Step
+2 and 3 allows to capture the COOP page's accesses to windows it opened but
+that were placed in another *browsing context group*. Note that the marking
+happens when the other window navigates.
+
+In report-only mode, we only check if a browsing context group switch
+would have happened if we enforced COOP. When this is the case:
+
+1. If the navigation COOP has a *report only reporting endpoint*, add *browsing context* to its opener set of *browsingContextsToNotifyOfAccess*. 
+2. Add all top-level **browsing contexts** in the **browsing context group** that have a COOP *report-only reporting endpoint* to *browsingContext*'s set of *browsingContextsToNotifyOfAccess*.
+
+After loading the page with COOP reporting, when the new browsing context
+navigates to another page that is cross-origin or no longer has the same COOP (including reporting), we remove it from the set of
+*browsingContextsToNotifyOfAccess* in all top-level browsing contexts. For each
+browsing context, if its set of *browsingContextsToNotifyOfAccess* becomes
+empty and it had been kept in step 3 above, we now discard it entirely.
+
+>  Keeping the browsing context in the set of accesses to notify when
+>  navigating to a same-origin page with the same COOP allows to report issues
+>  when the first page of a site triggers the browsing context group switch,
+>  but the blocked access happens only on the second page of the site. 
+
+From there, we modify **WindowProxy**'s property access. When trying to access a
+property on **WindowProxy**, we will check if the enviroment's *top-level
+browsing context* is inside the **WindowProxy**'s *top level browsing
+context*'s set of *browsingContextsToNotifyOfAccess*. If it is, and the
+environment is same origin with its *top-level browsing context*, then we
+inform the environment *top-level document* that one acess to the
+**WindowProxy** was blocked.
+
+> The same-origin check on the environment is there to not report accesses to other windows coming from cross-origin iframes.
+
+The document should then report a **blocked access from the COOP page to another window**. To do that, we generate a report
+for the COOP document URL, the current environment and the following body:
+
+- *disposition*: either "enforce" or "reporting" (depending on whether we're in report-only mode)
+- *effective policy*: the *value* or *report only value* of the COOP page
+- *blocked window uri*: either the **opener document URL for reporting** or the **openee document URL for reporting**, as defined in the **Safe URLs for reporting** section
+- *violation*: "access-from-coop-page"
+- *source file*, *lineno*, *colno*: if the user agent is currently executing script and can extract a source file's URL, line number and column number from the global object, set those accordingly.
