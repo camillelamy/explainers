@@ -1,6 +1,6 @@
-## Explainer: Cross-origin opener policy reporting API
+# Explainer: Cross-origin opener policy reporting API
 
-### Overview
+## Overview
 
 We want to provide a reporting API for cross-origin opener policy (COOP) to
 help developers deploy it on their websites. In addition to reporting breakages
@@ -8,7 +8,7 @@ when COOP is enforced, we want to provide a report-only mode for COOP. The
 report-only mode for COOP will not enforce COOP, but it will report potential
 breakages that would have happened had we enforced COOP.
 
-### Changes to the Cross-Origin-Opener-Policy header
+## Changes to the Cross-Origin-Opener-Policy header
 
 The Cross-Origin-Opener-Policy header is now defined as follows:
 
@@ -28,7 +28,7 @@ Example of usage a reporting endpoint:
 >
 > Cross-Origin-Opener-Policy-Report-Only = same-origin-allow-popups; report-to="http://example.com" -> does not enforce COOP, but send violation reports to http://example.com reporting breakages that would have happened if a COOP policy of same-origin-allow-popups had been enforced.
 
-### Changes to cross-origin opener policy
+## Changes to cross-origin opener policy
 
 Cross-origin opener policy is in process of being merged into the HTML spec in
 this
@@ -58,7 +58,7 @@ We continue computing the **cross-origin opener policy value** *value* as curren
 
 > This means that setting both HTTP headers "Cross-Origin-Opener-Policy-Report-Only=same-origin" and "Cross-Origin-Embedder-Policy-Report-Only=require-corp" will lead the document to have a report only COOP value of *same-origin-plus-coep*. We do this to help facilitate deployment of both COOP and COEP: if developers want to eventually have both, they do not need to choose which one should move out of report-only mode first.
 
-### Safe URLs for reporting
+## Safe URLs for reporting
 
 Since COOP takes effect during navigation, violation reports will need to
 include information about other documents to be useful for developers. This
@@ -85,7 +85,7 @@ report:
 	- If the other document, the current document and their respective redirect chains are all same-origin, this is the URL of the other document.
 	- Otherwise, it's the empty URL.
 
-### Reporting browsing context switches
+## Reporting browsing context switches
 
 The first type of violation we report are browsing context group switches. This
 is only useful if the navigating browsing context has another top level
@@ -115,11 +115,29 @@ the following body:
 
 > Note that *effective policy* can be *same-origin-plus-coep* even though this value cannot be set through the Cross-Origin-Opener-Policy header alone.
 
+### Popups
+
+When a document is same-origin with the top-level document, any popup they open inherits the cross-origin opener policy of the top-level document. In this case, when the browsing context group switch happens durign the first navigation of the popup, we should use the opener of the popup in lieu of the previous document in the preceding algorithms.
+
+> Otherwise, we'd generate reports for the intial about:blank document, which would not be very useful.
+
+This does not apply to popups created by a cross-origin iframe, which do not inherit COOP from their opener.
+In particular, we cannot report that a popup was opened with rel-noopener due to COOP.
+This would give too much information about the behavior of cross-origin frames.
+Depending on who would enable reporting, we would leak:
+
+- that a cross-origin iframe tried to open a popup to the parent document having enabled COOP reporting
+- that the iframe was embedded in a "*same-origin*" COOP document to the iframe having enabled COOP reporting
+
+### Redirects
+
 If a redirect response specifies a *reporting endpoint* in its
 Cross-Origin-Opener-Policy or Cross-Origin-Opener-Policy-Report-Only header and
 its COOP *value* or *report only value* would cause a browsing context group
 switch, we should also send a violation report to its endpoint (with the
 redirect response's URL).
+
+### Report-only mode
 
 These reports can also be sent in report-only mode. In that case, we need to
 compute that a browsing context group switch would have happened if we had
@@ -141,20 +159,30 @@ If both checks require a browsing context group switch, we send a violation
 report for *browsing context group switch due to navigating away from the page
 with COOP reporting*.
 
-### Report blocked accesses to other windows by the COOP page
+## Report blocked accesses to other windows by the COOP page
 
 The next step in reporting is to add reporting of accesses to other windows
 made by the COOP page that were blocked because COOP triggered a browsing
 context group switch. Similarly, in report-only mode, we should report accesses
 the page makes to other windows that would be blocked if COOP were enforced.
 
-To identify when to send these reports, we need to add a set *browsingContextsToNotifyOfAccess* to top-level
-**BrowsingContext**. It will contain pairs of *BrowsingContexts* and a boolean *reportOnly*.
+### Browsing context changes
+
+To identify when to send these reports, we need extra bookeeping on **BrowsingContexts**.
+
+We define the following **COOPAccessMonitor** struct:
+
+- A **BrowsingContext** *browsingContext* whose document has enabled COOP reporting
+- A boolean *report-only*
+- A string *report-type* whose value is either "*report-accesses-from*" or "*report-accesses-to*"
+
+Then we add a set of these **COOPAccessMonitors**, *browsingContextsToNotifyOfAccess*, to top-level
+**BrowsingContexts**.
 
 Then we modify the **obtain a new browsing context** step defined in COOP (this
 step happens when COOP triggers a Browsing Context Group switch):
-1.  When the navigation's **cross-origin opener policy** has a *reporting endpoint* and *browsingContext* (the current browsing context) has an opener, we create *newBrowsingContext* with that opener and mark the opener as closed. We add *newBrowsingContext* to the opener's set of *browsingContextsToNotifyOfAccess*.
-2. For all top-level **browsing contexts** in *browsingContext*'s *browsingContextGroup* we check if their **cross-origin opener policy** has a *reporting endpoint*. We add all those who do to *browsingContext*'s set of *browsingContextsToNotifyOfAccess*.
+1.  When the navigation's **cross-origin opener policy** has a *reporting endpoint* and *browsingContext* (the current browsing context) has an opener, we create *newBrowsingContext* with that opener and mark the opener as closed. We add *newBrowsingContext* to the opener's set of *browsingContextsToNotifyOfAccess* (with *report-only* false and *report-accesses-from*).
+2. For all top-level **browsing contexts** in *browsingContext*'s *browsingContextGroup* we check if their **cross-origin opener policy** has a *reporting endpoint*. We add all those who do to *browsingContext*'s set of *browsingContextsToNotifyOfAccess* (with *report-only* false and *report-accesses-from*).
 3. If *browsingContext*'s set of *browsingContextsToNotifyOfAccess* is not empty, instead of discarding it we only discard its document.
 
 Step 1 above allows us to capture the COOP page's accesses to its opener. Step
@@ -165,11 +193,12 @@ happens when the other window navigates.
 In report-only mode, we only check if a browsing context group switch
 would have happened if we enforced COOP. When this is the case:
 
-1. If the navigation COOP has a *report only reporting endpoint*, add *browsing context* to its opener set of *browsingContextsToNotifyOfAccess*.
-2. Add all top-level **browsing contexts** in the **browsing context group** that have a COOP *report-only reporting endpoint* to *browsingContext*'s set of *browsingContextsToNotifyOfAccess*.
+1. If the navigation COOP has a *report only reporting endpoint*, add *browsing context* to its opener set of *browsingContextsToNotifyOfAccess* (with *report-only* true and *report-accesses-from*).
+2. Add all top-level **browsing contexts** in the **browsing context group** that have a COOP *report-only reporting endpoint* to *browsingContext*'s set of *browsingContextsToNotifyOfAccess* (with *report-only* true and *report-accesses-from*).
 
 After loading the page with COOP reporting, when the new browsing context
-navigates to another page that is cross-origin or no longer has the same COOP (including reporting), we remove it from the set of
+navigates to another page that is cross-origin or no longer has the same COOP (including reporting),
+we remove it from the set of
 *browsingContextsToNotifyOfAccess* in all top-level browsing contexts. For each
 browsing context, if its set of *browsingContextsToNotifyOfAccess* becomes
 empty and it had been kept in step 3 above, we now discard it entirely.
@@ -178,6 +207,8 @@ empty and it had been kept in step 3 above, we now discard it entirely.
 >  navigating to a same-origin page with the same COOP allows to report issues
 >  when the first page of a site triggers the browsing context group switch,
 >  but the blocked access happens only on the second page of the site.
+
+### WindowProxy changes
 
 From there, we modify **WindowProxy**'s property access. When trying to access a
 property on **WindowProxy**, we will check if the environment's *top-level
@@ -198,7 +229,9 @@ for the COOP document URL, the current environment and the following body:
 - *violation*: "access-from-coop-page"
 - *source file*, *lineno*, *colno*: if the user agent is currently executing script and can extract a source file's URL, line number and column number from the global object, set those accordingly.
 
-### Report blocked accesses from other windows to the COOP page
+## Report blocked accesses from other windows to the COOP page
 
 Finally, we would also like to report accesses to the COOP page that were
-blocked/would have been blocked by the enforcement of COOP.
+blocked/would have been blocked by the enforcement of COOP. 
+
+### Browsing context changes
