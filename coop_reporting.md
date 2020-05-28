@@ -196,3 +196,8 @@ for the COOP document URL, the current environment and the following body:
 - *blocked window uri*: either the **opener document URL for reporting** or the **openee document URL for reporting**, as defined in the **Safe URLs for reporting** section
 - *violation*: "access-from-coop-page"
 - *source file*, *lineno*, *colno*: if the user agent is currently executing script and can extract a source file's URL, line number and column number from the global object, set those accordingly.
+
+### Report blocked accesses from other windows to the COOP page
+
+Finally, we would also like to report accesses to the COOP page that were
+blocked/would have been blocked by the enforcement of COOP.
