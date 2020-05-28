@@ -159,10 +159,10 @@ If both checks require a browsing context group switch, we send a violation
 report for *browsing context group switch due to navigating away from the page
 with COOP reporting*.
 
-## Report blocked accesses to other windows by the COOP page
+## Report blocked accesses to other windows
 
 The next step in reporting is to add reporting of accesses to other windows
-made by the COOP page that were blocked because COOP triggered a browsing
+that were blocked because COOP triggered a browsing
 context group switch. Similarly, in report-only mode, we should report accesses
 the page makes to other windows that would be blocked if COOP were enforced.
 
@@ -181,14 +181,21 @@ Then we add a set of these **COOPAccessMonitors**, *browsingContextsToNotifyOfAc
 
 Then we modify the **obtain a new browsing context** step defined in COOP (this
 step happens when COOP triggers a Browsing Context Group switch):
-1.  When the navigation's **cross-origin opener policy** has a *reporting endpoint* and *browsingContext* (the current browsing context) has an opener, we create *newBrowsingContext* with that opener and mark the opener as closed. We add *newBrowsingContext* to the opener's set of *browsingContextsToNotifyOfAccess* (with *report-only* false and *report-accesses-from*).
-2. For all top-level **browsing contexts** in *browsingContext*'s *browsingContextGroup* we check if their **cross-origin opener policy** has a *reporting endpoint*. We add all those who do to *browsingContext*'s set of *browsingContextsToNotifyOfAccess* (with *report-only* false and *report-accesses-from*).
-3. If *browsingContext*'s set of *browsingContextsToNotifyOfAccess* is not empty, instead of discarding it we only discard its document.
 
-Step 1 above allows us to capture the COOP page's accesses to its opener. Step
-2 and 3 allows to capture the COOP page's accesses to windows it opened but
+1. First, we check if there is a need to monitor accesses between this window and other windows in its fromer browsing context group. This is the case if the navigation's **cross-origin opener policy** has a *reporting endpoint* or any top-level **browsing contexts** in *browsingContext*'s *browsingContextGroup*'s **cross-origin opener policy** has a *reporting endpoint*. If ther is no need to monitor access, we can proceed normally.
+2. If *browsingContext* (the current browsing context) has an opener, we create *newBrowsingContext* with that opener and mark the opener as closed.
+3. Instead of discarding *browsingContext*, we only discard its document.
+4. If the navigation's **cross-origin opener policy** has a *reporting endpoint*, we add *newBrowsingContext* to the opener's set of *browsingContextsToNotifyOfAccess* (with *report-only* false and *report-accesses-from*).
+5. For all top-level **browsing contexts** in *browsingContext*'s *browsingContextGroup* we check if their **cross-origin opener policy** has a *reporting endpoint*. We add all those who do to *browsingContext*'s set of *browsingContextsToNotifyOfAccess* (with *report-only* false and *report-accesses-from*).
+6. If the navigation's **cross-origin opener policy** has a *reporting endpoint*, we add *newBrowsingContext* to *browsingContext*'s set of *browsingContextsToNotifyOfAccess* (with *report-only* false and *report-accesses-to*).
+7. If *browsingContext*'s opener's **cross-origin opener policy** has a *reporting endpoint*, we add *newBrowsingContext* to *browsingContext*'s opener's set of *browsingContextsToNotifyOfAccess* (with *report-only* false and *report-accesses-to*).
+
+Step 4 above allows us to capture the COOP page's accesses to its opener.
+Step 5 allows us to capture the COOP page's accesses to windows it opened but
 that were placed in another *browsing context group*. Note that the marking
 happens when the other window navigates.
+Step 6 allows us to capture the accesses made to a COOP page from windows in its former browsing context group.
+Step 7 allows us to capture the accesses made to a COOP page from windows it opened but that were placed in its former browsing context group.
 
 In report-only mode, we only check if a browsing context group switch
 would have happened if we enforced COOP. When this is the case:
