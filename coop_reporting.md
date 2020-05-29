@@ -267,3 +267,15 @@ for the COOP document URL, the current environment and the following body:
 - *blocked window uri*: depending on the other window being accessed, the **opener document URL for reporting**, the **openee document URL for reporting** or the **other documents in the browsing context group URL for reporting**, as defined in the **Safe URLs for reporting** section
 - *violation*: "access-to-coop-page"
 - *property*: the window property being accessed
+
+## Security and privacy considerations
+
+One of the principal risks of introducing the COOP reporting API is that the reports could leak information about cross-origin frame or window behaviors to the document that enables COOP reporting. To avoid this, we have included specific mitigations:
+1. The URLs of other documents that we report are sanitized so that they provide no more information about navigation than what the page would normally know.
+2. Cross-origin iframe's action are not included in the COOP reports sent to the endpoint specified by the top-level page.
+
+That said, the proposal gives more information than currently available in the reports for blocked accesses to a page with COOP reporting. In particular, it informs the COOP page that a cross-origin window tried to access a particular property on its window, and it add information about the cross-origin URL (referrer URL or initial navigation URL). We think this information is reasonnable to surface, as the access would normally result in JavaScript execution, which could potentially be detected by the page anyway.
+
+## Limitations of the API
+
+The API as defined currently does not give a way for cross-origin subframes embedded in a COOP page to detect that they have been broken by their parent COOP. There are privacy and security considerations to emitting reports bound for subframes based on a policy their cross-origin parent set. At the same time, there is no good way for an iframe to signal that it does not want to be embedded in a particular COOP environment, so it's not clear how actionable the reports would be anyway. Should we offer such a mechanism, we should extend the COOP reporting API to provide meaningful information to cross-origin iframes.
