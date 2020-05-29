@@ -63,7 +63,7 @@ We continue computing the **cross-origin opener policy value** *value* as curren
 Since COOP takes effect during navigation, violation reports will need to
 include information about other documents to be useful for developers. This
 could potentially leak private information, so we cannot simply expose the URL
-of other documents. In addition to stripping URLs of hostnames and passwords as
+of other documents. In addition to stripping URLs of usernames and passwords as
 normally done in reporting, we define the following as safe to include in a
 report:
 
