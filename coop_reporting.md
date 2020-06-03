@@ -49,14 +49,14 @@ The **cross-origin opener policy value** has the following values:
 
 We continue computing the **cross-origin opener policy value** *value* as currently defined. For the *report only value*, we do the following:
 
-1. If the *Cross-Origin-Opener-Policy* header is absent or cannot be parsed, then return *unsafe-none*.
-2. If the *Cross-Origin-Opener-Policy* header's bare item is "unsafe-none", then return *unsafe-none*.
-3. If the *Cross-Origin-Opener-Policy* header's bare item is "same-origin-allow-popups", then return *same-origin-allow-popups*.
-4. If the *Cross-Origin-Opener-Policy* header's bare item is "same-origin", then:
+1. If the *Cross-Origin-Opener-Policy-Report-Only* header is absent or cannot be parsed, then return *unsafe-none*.
+2. If the *Cross-Origin-Opener-Policy-Report-Only* header's bare item is "unsafe-none", then return *unsafe-none*.
+3. If the *Cross-Origin-Opener-Policy-Report-Only* header's bare item is "same-origin-allow-popups", then return *same-origin-allow-popups*.
+4. If the *Cross-Origin-Opener-Policy-Report-Only* header's bare item is "same-origin", then:
 	1. If the response's **cross-origin embedder policy** *value* is *require-corp* or its *report only value* is *require-corp*, then return *same-origin-plus-coep*.
 	2. Otherwise, return *same-origin*.
 
-> This means that setting both HTTP headers "Cross-Origin-Opener-Policy-Report-Only=same-origin" and "Cross-Origin-Embedder-Policy-Report-Only=require-corp" will lead the document to have a report only COOP value of *same-origin-plus-coep*. We do this to help facilitate deployment of both COOP and COEP: if developers want to eventually have both, they do not need to choose which one should move out of report-only mode first.
+> This means that setting both HTTP headers "Cross-Origin-Opener-Policy-Report-Only=same-origin" and "Cross-Origin-Embedder-Policy-Report-Only=require-corp" will lead the document to have a report only COOP value of *same-origin-plus-COEP*. We do this to help facilitate deployment of both COOP and COEP: if developers want to eventually have both, they do not need to choose which one should move out of report-only mode first.
 
 ## Safe URLs for reporting
 
@@ -100,8 +100,8 @@ page with COOP reporting**, we generate a report for the COOP document URL and
 the following body:
 
 - *disposition*: either "enforce" or "reporting" (depending on whether we're in report-only mode)
-- *effective policy*: the *value* or *report only value* of the COOP page
-- *navigation uri*: the **previous document URL for reporting**, as defined in the **Safe URLs for reporting** section
+- *effective-policy*: the *value* or *report only value* of the COOP page
+- *navigation-url*: the **previous document URL for reporting**, as defined in the **Safe URLs for reporting** section
 - *violation*: "navigate-to-document"
 
 When reporting a **browsing context group switch due to a navigation away from
@@ -109,11 +109,11 @@ page with COOP reporting**, we generate a report for the COOP document URL and
 the following body:
 
 - *disposition*: either "enforce" or "reporting" (depending on whether we're in report-only mode)
-- *effective policy*: the *value* or *report only value* of the COOP page
-- *navigation uri*: the **next document URL for reporting**, as defined in the **Safe URLs for reporting** section
+- *effective-policy*: the *value* or *report only value* of the COOP page
+- *navigation-url*: the **next document URL for reporting**, as defined in the **Safe URLs for reporting** section
 - *violation*: "navigate-from-document"
 
-> Note that *effective policy* can be *same-origin-plus-coep* even though this value cannot be set through the Cross-Origin-Opener-Policy header alone.
+> Note that *effective-policy* can be *same-origin-plus-COEP* even though this value cannot be set through the Cross-Origin-Opener-Policy header alone.
 
 ### Popups
 
@@ -273,18 +273,18 @@ When the document is notifed of a **blocked access from the COOP page to another
 for the COOP document URL, the current environment and the following body:
 
 - *disposition*: either "enforce" or "reporting" (depending on whether we're in report-only mode)
-- *effective policy*: the *value* or *report only value* of the COOP page
-- *blocked window uri*: depending on the other window being accessed, the **opener document URL for reporting**, the **openee document URL for reporting** or the **other documents in the browsing context group URL for reporting**, as defined in the **Safe URLs for reporting** section
+- *effective-policy*: the *value* or *report only value* of the COOP page
+- *blocked-window-url*: depending on the other window being accessed, the **opener document URL for reporting**, the **openee document URL for reporting** or the **other documents in the browsing context group URL for reporting**, as defined in the **Safe URLs for reporting** section
 - *violation*: "access-from-coop-page"
 - *property*: the window property being accessed
-- *source file*, *lineno*, *colno*: if the user agent is currently executing script and can extract a source file's URL, line number and column number from the global object, set those accordingly.
+- *source-file*, *lineno*, *colno*: if the user agent is currently executing script and can extract a source file's URL, line number and column number from the global object, set those accordingly.
 
 When the document is notifed of a **blocked access to the COOP page from another window**, it should generate a report
 for the COOP document URL, the current environment and the following body:
 
 - *disposition*: either "enforce" or "reporting" (depending on whether we're in report-only mode)
-- *effective policy*: the *value* or *report only value* of the COOP page
-- *blocked window uri*: depending on the other window being accessed, the **opener document URL for reporting**, the **openee document URL for reporting** or the **other documents in the browsing context group URL for reporting**, as defined in the **Safe URLs for reporting** section
+- *effective-policy*: the *value* or *report only value* of the COOP page
+- *blocked-window-url*: depending on the other window being accessed, the **opener document URL for reporting**, the **openee document URL for reporting** or the **other documents in the browsing context group URL for reporting**, as defined in the **Safe URLs for reporting** section
 - *violation*: "access-to-coop-page"
 - *property*: the window property being accessed
 
