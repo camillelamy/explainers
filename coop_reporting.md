@@ -258,14 +258,14 @@ In report-only mode, monitoring accesses is not enough to distinguish accesses f
 From there, we modify **WindowProxy**'s property access. When trying to access a
 property on **WindowProxy** as part of the **[[Get]]** or **[[Set]]** operations, we will check the **COOPAccessMonitors** of **WindowProxy**'s *top level browsing context*'s *browsingContextsToNotifyOfAccess*:
 1. For all **COOPAccessMonitors** with a *report-type* of *report-access-to*:
-	1. If the **COOPAccessMonitor**'s *report-only* value is true, and **WindowProxy**'s *top level browsing context*'s *virtualBrowsingContextGroupId* is the same as the environment's *top-level browsing context*'s *virtualBrowsingContextGroupId*, proceed.
-	2. If **WindowProxy**'s *top level browsing context*'s is not same-origin with the environment's *top-level browsing context* and the property is not part of the **cross-origin properties**, proceed.
-	3. Otherwise inform the *browsingContext* in the **COOPAccessMonitors** of a **blocked access to the COOP page from another window**, given the environment's *top-level browsing context*, the **COOPAccessMonitor** *report-only* value and the property being accessed.
+	1. If the **COOPAccessMonitor**'s *report-only* value is true, and **WindowProxy**'s *top level browsing context*'s *virtualBrowsingContextGroupId* is the same as the **incumbent global object**'s *top-level browsing context*'s *virtualBrowsingContextGroupId*, proceed.
+	2. If **WindowProxy**'s *top level browsing context*'s is not same-origin with the **incumbent global object**'s *top-level browsing context* and the property is not part of the **cross-origin properties**, proceed.
+	3. Otherwise inform the *browsingContext* in the **COOPAccessMonitors** of a **blocked access to the COOP page from another window**, given the **incumbent global object**'s *top-level browsing context*, the **COOPAccessMonitor** *report-only* value and the property being accessed.
 2. If there is a **COOPAccessMonitor** whose *browsingContext* is the environment's *top-level browsing context* and its *report-type* is *report-access-from*:
-	1. If the **COOPAccessMonitor**'s *report-only* value is true, and **WindowProxy**'s *top level browsing context*'s *virtualBrowsingContextGroupId* is the same as the environment's *top-level browsing context*'s *virtualBrowsingContextGroupId*, proceed.
-	2. If the environment is not same origin with its *top-level browsing context*, proceed.
-	3. If **WindowProxy**'s *top level browsing context*'s is not same-origin with the environment's *top-level browsing context* and the property is not part of the **cross-origin properties**, proceed.
-	4. Otherwise, inform the environment's *top-level document* of a **blocked access from the COOP page to another window**, given the **WindowProxy**'s *top level browsing context*, the **COOPAccessMonitor**'s *report-only* value, the property being accessed and the environment.
+	1. If the **COOPAccessMonitor**'s *report-only* value is true, and **WindowProxy**'s *top level browsing context*'s *virtualBrowsingContextGroupId* is the same as the **incumbent global object**'s *top-level browsing context*'s *virtualBrowsingContextGroupId*, proceed.
+	2. If the **incumbent global object** is not same origin with its *top-level browsing context*, proceed.
+	3. If **WindowProxy**'s *top level browsing context*'s is not same-origin with the **incumbent global object**'s *top-level browsing context* and the property is not part of the **cross-origin properties**, proceed.
+	4. Otherwise, inform the **incumbent global object**'s *top-level document* of a **blocked access from the COOP page to another window**, given the **WindowProxy**'s *top level browsing context*, the **COOPAccessMonitor**'s *report-only* value, the property being accessed and the environment.
 
 > The same-origin check on the environment is there to not report accesses to other windows coming from cross-origin iframes.
 
@@ -282,6 +282,8 @@ for the COOP document URL, the current environment and the following body:
 - *violation*: "access-from-coop-page"
 - *property*: the window property being accessed
 - *source-file*, *lineno*, *colno*: if the user agent is currently executing script and can extract a source file's URL, line number and column number from the global object, set those accordingly.
+
+> The report for blocked access from the COOP page should also notify ReportingObservers, unlike the rest of the reports described in this page.
 
 When the document is notifed of a **blocked access to the COOP page from another window**, it should generate a report
 for the COOP document URL, the current environment and the following body:
