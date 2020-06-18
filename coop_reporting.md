@@ -309,6 +309,76 @@ One of the principal risks of introducing the COOP reporting API is that the rep
 
 That said, the proposal gives more information than currently available in the reports for blocked accesses to a page with COOP reporting. In particular, it informs the COOP page that a cross-origin window tried to access a particular property on its window, and it add information about the cross-origin URL (referrer URL or initial navigation URL). We think this information is reasonnable to surface, as the access would normally result in JavaScript execution, which could potentially be detected by the page anyway.
 
+Finally, all information sent to the reporting endpoint goes through the reporting API, which provides security and privacy guarantees regarding the data collected in the reports.
+
+Answers for the TAG review security and privacy questionaire:
+
+### 2.1. What information might this feature expose to Web sites or other parties, and for what purposes is that exposure necessary?
+
+When a page enables this feature, it can know that other cross-origin pages tried to access cross-origin properties of its window. This allows it to know that enforcing COOP would break such behaviors.
+
+### 2.2. Is this specification exposing the minimum amount of information necessary to power the feature?
+
+Yes.
+
+### 2.3. How does this specification deal with personal information or personally-identifiable information or information derived thereof?
+
+This API does not currently expose any PII information.
+
+### 2.4. How does this specification deal with sensitive information?
+
+This API does not currently expose sensitive information.
+
+### 2.5. Does this specification introduce new state for an origin that persists across browsing sessions?
+
+No.
+
+### 2.6. What information from the underlying platform, e.g. configuration data, is exposed by this specification to an origin?
+
+None.
+
+### 2.7. Does this specification allow an origin access to sensors on a user’s device?
+
+No.
+
+### 2.8. What data does this specification expose to an origin? Please also document what data is identical to data exposed by other features, in the same or different contexts.
+
+An origin can know that a window it opened has COOP or COOP report-only enabled by getting report that accesses to it are blocked. The fact that a window had COOP enforced could already be inferred.
+
+The feature also exposes the fact that other origins tried to access particular cross-origin properties of the window of the document that enabled COOP reporting. The document could already know that the properties were accessed, however this feature correlates that with a URL. This URL is already known to the page, and is not necessarily the current URL of document trying to access the cross-origin property.
+
+### 2.9. Does this specification enable new script execution/loading mechanisms?
+
+No.
+
+### 2.10. Does this specification allow an origin to access other devices?
+
+No.
+
+### 2.11. Does this specification allow an origin some measure of control over a user agent’s native UI?
+
+No.
+
+### 2.12. What temporary identifiers might this this specification create or expose to the web?
+
+No.
+
+### 2.13. How does this specification distinguish between behavior in first-party and third-party contexts?
+
+This feature can only be enabled by a top-level navigation. When enabled, it applies to all actions in same-origin documents or targetting same-origin documents. Cross-origin iframes are not covered by the reporting API. All information is sent to a reporting endpoint specified by the top-level document, which cannot be changed by a third-party.
+
+### 2.14. How does this specification work in the context of a user agent’s Private Browsing or "incognito" mode?
+
+The behavior should be the same as for regular mode.
+
+### 2.15. Does this specification have a "Security Considerations" and "Privacy Considerations" section?
+
+Yes, located above the answers to this present questionaire.
+
+### 2.16. Does this specification allow downgrading default security characteristics?
+
+No.
+
 ## Limitations of the API
 
 The API as defined currently does not give a way for cross-origin subframes embedded in a COOP page to detect that they have been broken by their parent COOP. There are privacy and security considerations to emitting reports bound for subframes based on a policy their cross-origin parent set. At the same time, there is no good way for an iframe to signal that it does not want to be embedded in a particular COOP environment, so it's not clear how actionable the reports would be anyway. Should we offer such a mechanism, we should extend the COOP reporting API to provide meaningful information to cross-origin iframes.
