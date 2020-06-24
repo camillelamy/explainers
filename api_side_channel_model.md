@@ -34,11 +34,21 @@ Let's look at both in more details.
 
 #### Read access
 
+In this case, the web API gives a script read-access to another resource. Taking into account Specter, any Web API that exposes a precise timer essentially gives read access to all other resources on the document. In terms of threat, this allows an attacker to read the result of any third-party credentialed request.
+
 #### Disambiguation between responses
+
+In this case, the web API allows a script to disambiguate between two possible results of a third-party credentialed request even though it cannot read the response. For example, having access to a response size can allow to differentiate between two different responses to the same request. In terms of threat, an attacker can make deuctions on the user credentials based on the reponse that is sent. For example, imagine a request results in a different response depending on whether the user is logged in or not. An attacker can make the same request and determine the logged in status of the user if they can differentiate between the reponse that would be sent had the user been logged or the one if they hadn't.
+
+Trying to see if an API fits into this category is harder than the previous one. In particular, many APIs will only have a probability to differentiate between two reponses. The probability should be high enough for the threat to be effective. To get back to an example, using resource size to differentiate between two responses is very likely to work as an attack, as it is very unlikely that the two will have the exact same size. Using frame animation timing to infer the size of an image based on frame rendering time and then use this size to disambiguate between responses is unlikely to work reliably as an attack.
 
 #### Metadata about a resource
 
+In this case, the API exposes metadata that is not necessarily related to the content of the resource itself. For example, information related to how the resource was fetched (protocol, server timings, etc...). The threat here is that a server might not want to see this kind of information exposed cross-origin.
+
 #### None of the above
+
+In that case, the Web API does not present a threat of side channel attack. Great! In all other cases, though, access to the Web API needs to be gated behind appropriate mitigation.
 
 ### Surface of attack
 
