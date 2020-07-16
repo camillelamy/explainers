@@ -194,37 +194,75 @@ property on **WindowProxy** as part of the **[[Get]]** or **[[Set]]** operations
 3. If **WindowProxy**'s *top level browsing context*'s *virtualBrowsingContextGroupId* is the same as the **current global object**'s *top-level browsing context*'s *virtualBrowsingContextGroupId*, proceed.
 4. If the property is not part of the **cross-origin properties**, proceed.
 > We only send violation reports for accesses to cross-origin properties, as we think websites will deploy COOP on all pages coming from the same origin, meaning that cross-origin accesses to cross-origin properties is where the bulk of the violations will occur.
-5. If **WindowProxy**'s *top level browsing context*'s has a *report-only reporting endpoint*, inform **WindowProxy**'s *top level browsing context* of a **blocked access to the COOP page from another window**, given the **current global object**'s *top-level browsing context*, and the property being accessed.
-6. If the **current global object**'s *top-level browsing context* has a *report-only reporting endpoint*, inform the **current global object**'s *top-level document* of a **blocked access from the COOP page to another window**, given the **WindowProxy**'s *top level browsing context*, the environment and the property being accessed.
+5. If **WindowProxy**'s *top level browsing context*'s has a *report-only reporting endpoint*, then:
+	1. If **WindowProxy**'s *top level browsing context*'s *opener* is the **current global object**'s *top-level browsing context* or one of its same-origin children, inform **WindowProxy**'s *top level browsing context* of a **blocked access to the COOP page from its opener**, given the **current global object**'s *top-level browsing context*, and the property being accessed.
+	2. If the **current global object**'s *top level browsing context*'s *opener* is **WindowProxy**'s *top-level browsing context* or one of its same-origin children, inform **WindowProxy**'s *top level browsing context* of a **blocked access to the COOP page from a window it opened**, given the **current global object**'s *top-level browsing context*, and the property being accessed.
+	3. Otherwise, inform **WindowProxy**'s *top level browsing context* of a **blocked access to the COOP page from another document**, given the **current global object**'s *top-level browsing context*, and the property being accessed.
+6. If the **current global object**'s *top-level browsing context* has a *report-only reporting endpoint*, then:
+	1. If **WindowProxy**'s *top level browsing context*'s *opener* is the **current global object**'s *top-level browsing context* or one of its same-origin children, inform the **current global object**'s *top level browsing context* of a **blocked access from the COOP page to a window it opened**, given the **WindowProxy**'s *top level browsing context*, the environment and the property being accessed.
+	2. If the **current global object**'s *top level browsing context*'s *opener* is **WindowProxy**'s *top-level browsing context* or one of its same-origin children, inform the **current global object**'s *top level browsing context* of a **blocked access from the COOP page to its opener**, given the **WindowProxy**'s *top level browsing context*, the environment and the property being accessed.
+	3. Otherwise, inform the **current global object**'s *top level browsing context* of a **blocked access from the COOP page to another document**, given the **WindowProxy**'s *top level browsing context*, the environment and the property being accessed.
 
 ### Emit reports
 
-When the document is notifed of a **blocked access from the COOP page to another window**, it should generate a report
+When the document is notifed of a **blocked access from the COOP page to its opener**, it should generate a report
 for the COOP document URL, the current environment and the following body:
 
 - *disposition*: "reporting"
-- *effective-policy*: the *value* or *report only value* of the COOP page
-- *blocked-window-url*:
-	- the **opener document URL for reporting** if the COOP page is trying to access its opener
-	- the **openee document URL for reporting** if the COOP page is trying to access a page it opened
-	- the **other documents in the browsing context group URL for reporting** in other cases
-	> All are defined in the **Safe URLs for reporting** section.
-- *violation*: "access-from-coop-page"
+- *effective-policy*: the *report only value* of the COOP page
+- *opener-url*: if the COOP document and all its redirect are same-origin with the opener, the sanitized opener URL, an empty string otherwise.
+- *referrer*: the referrer of the COOP document.
+- *violation*: "access-from-coop-page-to-opener"
 - *property*: the name of the property being accessed
 - *source-file*, *lineno*, *colno*: if the user agent is currently executing script and can extract a source file's URL, line number and column number from the global object, set those accordingly.
 
-> The report for blocked access from the COOP page should also notify ReportingObservers, unlike the rest of the reports described in this page.
-
-When the document is notifed of a **blocked access to the COOP page from another window**, it should generate a report for the COOP document URL, the current environment and the following body:
+When the document is notifed of a **blocked access from the COOP page to a window it opened**, it should generate a report
+for the COOP document URL, the current environment and the following body:
 
 - *disposition*: "reporting"
-- *effective-policy*: the *value* or *report only value* of the COOP page
-- *blocked-window-url*:
-	- the **opener document URL for reporting** if the window trying to access the COOP page is its opener
-	- the **openee document URL for reporting** if the window trying to access the COOP page was opened by the COOP page
-	- the **other documents in the browsing context group URL for reporting** in other cases
-	> All are defined in the **Safe URLs for reporting** section.
-- *violation*: "access-to-coop-page-same-origin"
+- *effective-policy*: the *report only value* of the COOP page
+- *openee-url*: if the document opened by the COOP page and all its redirects are same-origin with the COOP document, the sanitized URL of the openee document, an empty string otherwise.
+- *initial-popup-url*: if the COOP document is same-origin with the popup creator, the sanitized initial popup URL, an empty string otherwise.
+- *violation*: "access-from-coop-page-to-openee"
+- *property*: the name of the property being accessed
+- *source-file*, *lineno*, *colno*: if the user agent is currently executing script and can extract a source file's URL, line number and column number from the global object, set those accordingly.
+
+When the document is notifed of a **blocked access from the COOP page to another type of document**, it should generate a report
+for the COOP document URL, the current environment and the following body:
+
+- *disposition*: "reporting"
+- *effective-policy*: the *report only value* of the COOP page
+- *other-document-url*: if the COOP document and all its redirect are same-origin with the other document and all its redirects, the sanitized URL of the other document, an empty string otherwise.
+- *violation*: "access-from-coop-page-to-other"
+- *property*: the name of the property being accessed
+- *source-file*, *lineno*, *colno*: if the user agent is currently executing script and can extract a source file's URL, line number and column number from the global object, set those accordingly.
+
+> All reports for blocked access from the COOP page should also notify ReportingObservers, unlike the rest of the reports described in this page.
+
+When the document is notifed of a **blocked access to the COOP page from its opener**, it should generate a report for the COOP document URL, the current environment and the following body:
+
+- *disposition*: "reporting"
+- *effective-policy*: the *report only value* of the COOP page
+- *opener-url*: if the COOP document and all its redirect are same-origin with the opener, the sanitized opener URL, an empty string otherwise.
+- *referrer*: the referrer of the COOP document.
+- *violation*: "access-to-coop-page-from-opener"
+- *property*: the name of the property being accessed.
+
+When the document is notifed of a **blocked access to the COOP page from a window it opened**, it should generate a report for the COOP document URL, the current environment and the following body:
+
+- *disposition*: "reporting"
+- *effective-policy*: the *report only value* of the COOP page
+- *openee-url*: if the document opened by the COOP page and all its redirects are same-origin with the COOP document, the sanitized URL of the openee document, an empty string otherwise.
+- *initial-popup-url*: if the COOP document is same-origin with the popup creator, the sanitized initial popup URL, an empty string otherwise.
+- *violation*: "access-to-coop-page-from-openee"
+- *property*: the name of the property being accessed.
+
+When the document is notifed of a **blocked access to the COOP page from another document**, it should generate a report for the COOP document URL, the current environment and the following body:
+
+- *disposition*: "reporting"
+- *effective-policy*: the *report only value* of the COOP page
+- *other-document-url*: if the COOP document and all its redirect are same-origin with the other document and all its redirects, the sanitized URL of the other document, an empty string otherwise.
+- *violation*: "access-to-coop-page-from-other"
 - *property*: the name of the property being accessed.
 
 ### Reporting blocked accesses when COOP is enforced (outside the scope of this proposal)
