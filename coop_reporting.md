@@ -165,48 +165,10 @@ context group switch. Unfortunately, this is only doable easily in report-only m
 
 ### Browsing context changes
 
-#### Monitoring accesses
+#### Initial URL of a popup
+As explained in the **Safe URLs for reporting** section, we might need to report the initial navigation URL of a popup. On the first navigation of a top-level **browsing context** with an opener, we should store the initial navigation URL inside the **browsing context**. This value will not change afterwards.
 
-To identify when to send these reports, we need extra bookeeping on **BrowsingContexts**.
-
-We define the following **COOPAccessMonitor** struct:
-
-- A **BrowsingContext** *browsingContext* whose document has enabled COOP reporting
-- A string *report-type* whose value is either "*report-accesses-from*" or "*report-accesses-to*"
-
-Then we add a set of these **COOPAccessMonitors**, *browsingContextsToNotifyOfAccess*, to top-level
-**BrowsingContexts**.
-
-In report-only mode, we only check if a browsing context group switch
-would have happened if we enforced COOP. When this is the case:
-
-1. We need to check if we need to monitor accesses between this window and other windows that would have been in another browsing context group had coop been enforced. This is the case if *browsingContext* (the current browsing context) has an opener and the navigation's **cross-origin opener policy** has a *report-only reporting endpoint* or or *browsingContext*'s opener is same-origin with its top-level browsing context and the opener's top-level browsing context's **cross-origin opener policy** has a *report-only reporting endpoint*. If there is no need to monitor access, we can proceed normally.
-2. If the navigation's **cross-origin opener policy** has a *report only reporting endpoint*
-	1. We add *browsingContext* to its opener set of *browsingContextsToNotifyOfAccess* (with *report-accesses-from*).
-	2. We add *browsingContext* to *browsingContext*'set of *browsingContextsToNotifyOfAccess* (with *report-accesses-to*).
-3.  If *browsingContext*'s opener is same-origin with its top level browsing context and the opener's top-level browsing context's **cross-origin opener policy** has a *report only endpoint*:
-	1. We add *browsingContext*'s opener's top-level browsing context to *browsingContext*'s set of *browsingContextsToNotifyOfAccess* (with *report-accesses-from*).
-	2. We add *browsingContext*'s opener's top-level browsing context to *browsingContext*'s opener's set of *browsingContextsToNotifyOfAccess* (with *report-accesses-to*).
-
-Step 2.1 allows us to capture accesses made by the COOP report-only page to its opener.
-Step 2.2 allows us to capture accesses made to the COOP report-only page by other windows in the browsing context group.
-
-![Reporting when navigating to a COOP report-only page](/COOP_reporting_only_being_opened.png)
-
-Step 3.1 allows us to capture accesses made by a COOP report-only pages to other window it opens.
-Step 3.2 allows us to capture accesses made to a COOP report-only pages by other window it opens.
-
-![Reporting when opening a window from a COOP report-only page](/COOP_reporting_only_opening.png)
-
-After loading the page with COOP reporting, when the new browsing context
-navigates to another page that is cross-origin or no longer has the same COOP (including reporting),
-we remove it from the set of
-*browsingContextsToNotifyOfAccess* in all top-level browsing contexts.
-
->  Keeping the browsing context in the set of accesses to notify when
->  navigating to a same-origin page with the same COOP allows to report issues
->  when the first page of a site would trigger the browsing context group switch,
->  but the blocked access would only happen on the second page of the site.
+Similarly, we should store the popup creator's origin in the browsing context (which again will not change). This is needed to check when we can safely report the initial URL of the popup.
 
 #### Virtual browsing context group id
 
@@ -271,6 +233,15 @@ When the document is notifed of a **blocked access to the COOP page from another
 - *property*: the name of the property being accessed.
 
 ### Reporting blocked accesses when COOP is enforced (outside the scope of this proposal)
+To identify when to send these reports, we need extra bookeeping on **BrowsingContexts**.
+
+We define the following **COOPAccessMonitor** struct:
+
+- A **BrowsingContext** *browsingContext* whose document has enabled COOP reporting
+- A string *report-type* whose value is either "*report-accesses-from*" or "*report-accesses-to*"
+
+Then we add a set of these **COOPAccessMonitors**, *browsingContextsToNotifyOfAccess*, to top-level
+**BrowsingContexts**.
 
 In order to report blocked accesses when COOP is enforced, we would need to do modify the **obtain a new browsing context** step defined in COOP (this step happens when COOP triggers a Browsing Context Group switch):
 
@@ -295,6 +266,16 @@ happens when the other window navigates.
 Step 5.2 allows us to capture the accesses made to a COOP page from windows it opened but that were placed in its former browsing context group. Again, the marking happens when the other window navigates.
 
 ![Reporting when opening a window from a COOP page](/COOP_reporting_opening_window.png)
+
+After loading the page with COOP reporting, when the new browsing context
+navigates to another page that is cross-origin or no longer has the same COOP (including reporting),
+we remove it from the set of
+*browsingContextsToNotifyOfAccess* in all top-level browsing contexts.
+
+>  Keeping the browsing context in the set of accesses to notify when
+>  navigating to a same-origin page with the same COOP allows to report issues
+>  when the first page of a site would trigger the browsing context group switch,
+>  but the blocked access would only happen on the second page of the site.
 
 From there, we can reuse the changes described in the **WindowProxy changes** section above to properly emit reports.
 
