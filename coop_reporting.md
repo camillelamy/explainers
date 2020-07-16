@@ -64,26 +64,22 @@ Since COOP takes effect during navigation, violation reports will need to
 include information about other documents to be useful for developers. This
 could potentially leak private information, so we cannot simply expose the URL
 of other documents. In addition to stripping URLs of usernames and passwords as
-normally done in reporting, we define the following as safe to include in a
-report:
+normally done in reporting, we have to consider which URLs we can safely use in reports.
 
-- **Previous document URL for reporting** - this corresponds to the URL of the document that navigated to the page with COOP reporting. To report it safely, we do the following:
-	- If the current document and all its redirect chain are same-origin with the previous document, this is the previous document URL.
-
-	- Otherwise, it's the referrer of the navigation.
-- **Next document URL for reporting** - this corresponds to the URL of the document the page with COOP reporting is navigating to. To report it safely, we do the following:
-	- If the next document and all its redirect chain are same-origin with the current document, this is the next document URL.
-	- If the current document is the initiator of the navigation, then it's the initial navigation URL.
-	- Otherwise, it's the empty URL.
-- **Opener document URL for reporting** - this corresponds to the URL of the document that opened the page with COOP reporting. To report it safely, we do the following:
-	- If the current document and all its redirect chain are same-origin with the opener document, this is the previous document URL.
-	- Otherwise, it's the referrer of the navigation.
-- **Openee document URL for reporting** - this corresponds to the URL of the documents opened by the page with COOP reporting. To report it safely, we do the following:
-	- If the document opened by the current document and all its redirect chain are same-origin with the current document, this is the opened document URL.
-	- Otherwise, it's the initial navigation URL (because the COOP page is the opener so it is the initiator of the navigation).
-- **Other documents in the browsing context group URL for reporting** - this corresponds to the URL of the other documents in the browsing context group. To report it safely, we do the following:
-	- If the other document, the current document and their respective redirect chains are all same-origin, this is the URL of the other document.
-	- Otherwise, it's the empty URL.
+- **Navigation to a COOP reponse:** here we want to identify the document that navigated to a response with COOP reporting. What we can safely report is the following:
+	- If the COOP response and all its redirect chain are same-origin with the current document, we can report the current document URL(sanitized).
+	- We can always report the referrer of the navigation.
+- **Navigation away from a COOP page:** here we want to identify the document the page with COOP reporting is navigating to. What we can safely report is the following:
+	- If the next document and all its redirect chain are same-origin with the current document, we can report the next document URL(sanitized).
+	- If the current document is the initiator of the navigation, then we can report the initial navigation URL.
+- **Accesses to/from opener of a COOP page:** here we want to identify the opener of the page with COOP reporting. What we can report safely is the following:
+	- If the current document and all its redirect chain are same-origin with the opener document, we can report the opener URL(sanitized).
+	- We can always report the referrer of the navigation.
+- **Accesses to/from a document opened by a COOP page:** here we want to identify the windows opened by a COOP page. What we can report safely is the following:
+	- If the document opened by the COOP document and all its redirect chain are same-origin with the current document, then we can report the opened document URL(sanitized).
+	- We can always report the initial navigation URL of the opened window because the COOP document is the opener so it is also the initiator of the navigation.
+- **Accesses to/from documents that don't have an opener relationship with the COOP page:** What we can safely report is the following:
+	- If the other document, the COOP document and their respective redirect chains are all same-origin, we can report the URL of the other document(sanitized).
 
 ## Reporting browsing context switches
 
@@ -96,12 +92,13 @@ browsing context group switches when there is more than 1 top level browsing
 context in the browsing context group.
 
 When reporting a **browsing context group switch due to a navigation to the
-page with COOP reporting**, we generate a report for the COOP document URL and
+response with COOP reporting**, we generate a report for the COOP document URL and
 the following body:
 
 - *disposition*: either "enforce" or "reporting" (depending on whether we're in report-only mode)
 - *effective-policy*: the *value* or *report only value* of the COOP page
-- *navigation-url*: the **previous document URL for reporting**, as defined in the **Safe URLs for reporting** section
+- *previous-document-url*: if the COOP response and all its redirects are same-origin with the current document, the sanitized current document URL. Otherwise an empty string.
+- *referrer*: the referrer of the navigation.
 - *violation*: "navigate-to-document"
 
 When reporting a **browsing context group switch due to a navigation away from
@@ -110,7 +107,8 @@ the following body:
 
 - *disposition*: either "enforce" or "reporting" (depending on whether we're in report-only mode)
 - *effective-policy*: the *value* or *report only value* of the COOP page
-- *navigation-url*: the **next document URL for reporting**, as defined in the **Safe URLs for reporting** section
+- *next-document-url*: if the navigation URL and all its redirects are same-origin with the COOP page, then the sanitized navigation URL. Otherwise, an empty string.
+- *initial-navigation-url*: if the COOP page is same-origin with the initiator of the navigation, the sanitized URL of the initial navigation request. Otherwise, an empty string.
 - *violation*: "navigate-from-document"
 
 > Note that *effective-policy* can be *same-origin-plus-COEP* even though this value cannot be set through the Cross-Origin-Opener-Policy header alone.
