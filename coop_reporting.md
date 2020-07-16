@@ -187,20 +187,15 @@ In report-only mode, monitoring accesses is not enough to distinguish accesses f
 ### WindowProxy changes
 
 From there, we modify **WindowProxy**'s property access. When trying to access a
-property on **WindowProxy** as part of the **[[Get]]** or **[[Set]]** operations, we will check the **COOPAccessMonitors** of **WindowProxy**'s *top level browsing context*'s *browsingContextsToNotifyOfAccess*:
-1. For all **COOPAccessMonitors** with a *report-type* of *report-access-to*:
-	1. If **WindowProxy**'s *top level browsing context*'s *virtualBrowsingContextGroupId* is the same as the **current global object**'s *top-level browsing context*'s *virtualBrowsingContextGroupId*, proceed.
-	2. If the property is not part of the **cross-origin properties**, proceed.
-	3. Otherwise inform the *browsingContext* in the **COOPAccessMonitors** of a **blocked access to the COOP page from another window**, given the **current global object**'s *top-level browsing context*, and the property being accessed.
-2. If there is a **COOPAccessMonitor** whose *browsingContext* is the environment's *top-level browsing context* and its *report-type* is *report-access-from*:
-	1. If **WindowProxy**'s *top level browsing context*'s *virtualBrowsingContextGroupId* is the same as the **incumbent global object**'s *top-level browsing context*'s *virtualBrowsingContextGroupId*, proceed.
-	2. If the **current global object** is not same origin with its *top-level browsing context*, proceed.
-	3. If the property is not part of the **cross-origin properties**, proceed.
-	4. Otherwise, inform the **current global object**'s *top-level document* of a **blocked access from the COOP page to another window**, given the **WindowProxy**'s *top level browsing context*, the environment and the property being accessed.
-
-> The same-origin check on the environment is there to not report accesses to other windows coming from cross-origin iframes.
-
+property on **WindowProxy** as part of the **[[Get]]** or **[[Set]]** operations:
+1. If **WindowProxy**'s *browsing context* is not same-origin with **WindowProxy**'s *top level browsing context*, proceed.
+2. If the **current global object**'s *browsing context* is not same-origin with the **current global object**'s *top-level browsing context*, proceed.
+> The same-origin checks prevent reporting accesses to/from cross-origin iframes.
+3. If **WindowProxy**'s *top level browsing context*'s *virtualBrowsingContextGroupId* is the same as the **current global object**'s *top-level browsing context*'s *virtualBrowsingContextGroupId*, proceed.
+4. If the property is not part of the **cross-origin properties**, proceed.
 > We only send violation reports for accesses to cross-origin properties, as we think websites will deploy COOP on all pages coming from the same origin, meaning that cross-origin accesses to cross-origin properties is where the bulk of the violations will occur.
+5. If **WindowProxy**'s *top level browsing context*'s has a *report-only reporting endpoint*, inform **WindowProxy**'s *top level browsing context* of a **blocked access to the COOP page from another window**, given the **current global object**'s *top-level browsing context*, and the property being accessed.
+6. If the **current global object**'s *top-level browsing context* has a *report-only reporting endpoint*, inform the **current global object**'s *top-level document* of a **blocked access from the COOP page to another window**, given the **WindowProxy**'s *top level browsing context*, the environment and the property being accessed.
 
 ### Emit reports
 
@@ -249,8 +244,8 @@ In order to report blocked accesses when COOP is enforced, we would need to do m
 2. We create *newBrowsingContext* with an empty browsing context *newOpener* as opener and mark the opener as closed.
 3. Instead of discarding *browsingContext*, we only discard its document.
 4. If the navigation's **cross-origin opener policy** has a *reporting endpoint*:
-	1. We add *newBrowsingContext* to the *newOpener*'s set of *browsingContextsToNotifyOfAccess* (with *report-only* false and *report-accesses-from*).
-	2. We add *newBrowsingContext* to *browsingContext*'s set of *browsingContextsToNotifyOfAccess* (with *report-only* false and *report-accesses-to*).
+	1. We add *newBrowsingContext* to the *newOpener*'s set of *browsingContextsToNotifyOfAccess* (with *report-accesses-from*).
+	2. We add *newBrowsingContext* to *browsingContext*'s set of *browsingContextsToNotifyOfAccess* (with *report-accesses-to*).
 5. If *browsingContext*'s opener is same-origin with its top level browsing context and the opener's top-level browsing context's **cross-origin opener policy** has a *reporting endpoint*:
 	1. We add *browsingContext*'s opener's top level browsing context to *browsingContext*'s set of *browsingContextsToNotifyOfAccess* (with *report-only* false and *report-accesses-from*).
 	2. We add *browsingContext*'s opener's top level browsing context to *newOpener*'s set of *browsingContextsToNotifyOfAccess* (with *report-only* false and *report-accesses-to*).
@@ -277,7 +272,17 @@ we remove it from the set of
 >  when the first page of a site would trigger the browsing context group switch,
 >  but the blocked access would only happen on the second page of the site.
 
-From there, we can reuse the changes described in the **WindowProxy changes** section above to properly emit reports.
+From there, we modify **WindowProxy**'s property access. When trying to access a
+property on **WindowProxy** as part of the **[[Get]]** or **[[Set]]** operations, we will check the **COOPAccessMonitors** of **WindowProxy**'s *top level browsing context*'s *browsingContextsToNotifyOfAccess*:
+1. For all **COOPAccessMonitors** with a *report-type* of *report-access-to*:
+	1. If **WindowProxy**'s *top level browsing context*'s *virtualBrowsingContextGroupId* is the same as the **current global object**'s *top-level browsing context*'s *virtualBrowsingContextGroupId*, proceed.
+	2. If the property is not part of the **cross-origin properties**, proceed.
+	3. Otherwise inform the *browsingContext* in the **COOPAccessMonitors** of a **blocked access to the COOP page from another window**, given the **current global object**'s *top-level browsing context*, and the property being accessed.
+2. If there is a **COOPAccessMonitor** whose *browsingContext* is the environment's *top-level browsing context* and its *report-type* is *report-access-from*:
+	1. If **WindowProxy**'s *top level browsing context*'s *virtualBrowsingContextGroupId* is the same as the **incumbent global object**'s *top-level browsing context*'s *virtualBrowsingContextGroupId*, proceed.
+	2. If the **current global object** is not same origin with its *top-level browsing context*, proceed.
+	3. If the property is not part of the **cross-origin properties**, proceed.
+	4. Otherwise, inform the **current global object**'s *top-level document* of a **blocked access from the COOP page to another window**, given the **WindowProxy**'s *top level browsing context*, the environment and the property being accessed.
 
 However, all of this requires creating a dummy opener object. We believe this too complex for the benefit of getting reports in enforcement mode, so we are not currently looking to implement this.
 
