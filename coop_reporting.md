@@ -67,11 +67,11 @@ of other documents. In addition to stripping URLs of usernames and passwords as
 normally done in reporting, we have to consider which URLs we can safely use in reports.
 
 - **Navigation to a COOP reponse:** here we want to identify the document that navigated to a response with COOP reporting. What we can safely report is the following:
-	- If the COOP response and all its redirect chain are same-origin with the current document, we can report the current document URL(sanitized).
+	- If the COOP response with the current document or the previous response (when there are redirects), we can report the current document URL or the previous response URL respectively(sanitized).
 	- We can always report the referrer of the navigation.
-- **Navigation away from a COOP page:** here we want to identify the document the page with COOP reporting is navigating to. What we can safely report is the following:
-	- If the next document and all its redirect chain are same-origin with the current document, we can report the next document URL(sanitized).
-	- If the current document is the initiator of the navigation, then we can report the initial navigation URL.
+- **Navigation away from a COOP page:** here we want to identify the reponse the page with COOP reporting is navigating to. What we can safely report is the following:
+	- If the response is same-origin with the current document or the last response (when there are redirects), we can report the response URL(sanitized).
+	- If the current document or the last response (when there are recirects) is the initiator of the navigation, then we can report the response URL (sanitized).
 - **Accesses to/from opener of a COOP page:** here we want to identify the opener of the page with COOP reporting. What we can report safely is the following:
 	- If the current document and all its redirect chain are same-origin with the opener document, we can report the opener URL(sanitized).
 	- We can always report the referrer of the navigation.
@@ -91,24 +91,25 @@ top-level browsing contexts. Otherwise, it has no impact. Thus we only report
 browsing context group switches when there is more than 1 top level browsing
 context in the browsing context group.
 
+> Note: the browsing context group switch check and reporting is done **on each redirect** and uses the last redirect response's COOP and origin when a redirect happened instead of the current document COOP and origin.
+
 When reporting a **browsing context group switch due to a navigation to the
 response with COOP reporting**, we generate a report for the COOP document URL and
 the following body:
 
 - *disposition*: either "enforce" or "reporting" (depending on whether we're in report-only mode)
 - *effectivePolicy*: the *value* or *report only value* of the COOP page
-- *previousDocumentUrl*: if the COOP response and all its redirects are same-origin with the current document, the sanitized current document URL. Otherwise an empty string.
+- *previousResponseUrl*: if the COOP response is same-origin with the current document or the last redirect response if there is one, the sanitized current document URL/last redirect response URL respectively. Otherwise an empty string.
 - *referrer*: the referrer of the navigation.
 - *violation*: "navigate-to-document"
 
 When reporting a **browsing context group switch due to a navigation away from
-page with COOP reporting**, we generate a report for the COOP document URL and
+a response with COOP reporting**, we generate a report for the COOP document URL and
 the following body:
 
 - *disposition*: either "enforce" or "reporting" (depending on whether we're in report-only mode)
 - *effectivePolicy*: the *value* or *report only value* of the COOP page
-- *nextDocumentUrl*: if the navigation URL and all its redirects are same-origin with the COOP page, then the sanitized navigation URL. Otherwise, an empty string.
-- *initialNavigationUrl*: if the COOP page is same-origin with the initiator of the navigation, the sanitized URL of the initial navigation request. Otherwise, an empty string.
+- *nextResponseUrl*: In the absence of redirects, if the current document URL is same-origin with the response or is the initiator of navigation, then the sanitized response URL. When there is a redirect (ie the redirect has COOP reporting), the sanitized response URL. Otherwise, an empty string.
 - *violation*: "navigate-from-document"
 
 > Note that *effective-policy* can be *same-origin-plus-COEP* even though this value cannot be set through the Cross-Origin-Opener-Policy header alone.
@@ -127,34 +128,26 @@ Depending on who would enable reporting, we would leak:
 - that a cross-origin iframe tried to open a popup to the parent document having enabled COOP reporting
 - that the iframe was embedded in a "*same-origin*" COOP document to the iframe having enabled COOP reporting
 
-### Redirects
-
-If a redirect response specifies a *reporting endpoint* in its
-Cross-Origin-Opener-Policy or Cross-Origin-Opener-Policy-Report-Only header and
-its COOP *value* or *report only value* would cause a browsing context group
-switch, we should also send a violation report to its endpoint (with the
-redirect response's URL).
-
 ### Report-only mode
 
 These reports can also be sent in report-only mode. In that case, we need to
 compute that a browsing context group switch would have happened if we had
-enforced the *report only value* of COOP. To do that when navigating to a page with report only COOP, we check if:
-- the previous document COOP and the navigation report only COOP require a browsing context group switch
-- the previous document report only COOP and the navigation report only COOP require a browsing context group switch
+enforced the *report only value* of COOP. To do that when navigating to a response with report only COOP, we check if:
+- the previous document COOP/last response's COOP and the response's report only COOP require a browsing context group switch
+- the previous document/last response report only COOP's and the response's report only COOP require a browsing context group switch
 
 If both checks require a browsing context group switch, we send a violation
-report for *browsing context group switch due to a navigation to the page with
+report for *browsing context group switch due to a navigation to a response with
 COOP reporting*.
 
 > This allows a website to set the same report only COOP on all its pages and not get a violation report when navigating from one to another.
 
-Similarly, when navigating away from a page with report only COOP, we check if:
-- the current document report only COOP and the navigation COOP require a browsing context group switch
-- the current document report only COOP and the navigation report only COOP require a browsing context group switch
+Similarly, when navigating away from a response with report only COOP, we check if:
+- the current document/last response's report only COOP and the response's COOP require a browsing context group switch
+- the current document/last response's report only COOP and the response's report only COOP require a browsing context group switch
 
 If both checks require a browsing context group switch, we send a violation
-report for *browsing context group switch due to navigating away from the page
+report for *browsing context group switch due to navigating away from a response
 with COOP reporting*.
 
 ## Report blocked accesses to other windows
