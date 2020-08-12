@@ -96,8 +96,8 @@ response with COOP reporting**, we generate a report for the COOP document URL a
 the following body:
 
 - *disposition*: either "enforce" or "reporting" (depending on whether we're in report-only mode)
-- *effective-policy*: the *value* or *report only value* of the COOP page
-- *previous-document-url*: if the COOP response and all its redirects are same-origin with the current document, the sanitized current document URL. Otherwise an empty string.
+- *effectivePolicy*: the *value* or *report only value* of the COOP page
+- *previousDocumentUrl*: if the COOP response and all its redirects are same-origin with the current document, the sanitized current document URL. Otherwise an empty string.
 - *referrer*: the referrer of the navigation.
 - *violation*: "navigate-to-document"
 
@@ -106,9 +106,9 @@ page with COOP reporting**, we generate a report for the COOP document URL and
 the following body:
 
 - *disposition*: either "enforce" or "reporting" (depending on whether we're in report-only mode)
-- *effective-policy*: the *value* or *report only value* of the COOP page
-- *next-document-url*: if the navigation URL and all its redirects are same-origin with the COOP page, then the sanitized navigation URL. Otherwise, an empty string.
-- *initial-navigation-url*: if the COOP page is same-origin with the initiator of the navigation, the sanitized URL of the initial navigation request. Otherwise, an empty string.
+- *effectivePolicy*: the *value* or *report only value* of the COOP page
+- *nextDocumentUrl*: if the navigation URL and all its redirects are same-origin with the COOP page, then the sanitized navigation URL. Otherwise, an empty string.
+- *initialNavigationUrl*: if the COOP page is same-origin with the initiator of the navigation, the sanitized URL of the initial navigation request. Otherwise, an empty string.
 - *violation*: "navigate-from-document"
 
 > Note that *effective-policy* can be *same-origin-plus-COEP* even though this value cannot be set through the Cross-Origin-Opener-Policy header alone.
@@ -209,41 +209,41 @@ When the document is notifed of a **blocked access from the COOP page to its ope
 for the COOP document URL, the current environment and the following body:
 
 - *disposition*: "reporting"
-- *effective-policy*: the *report only value* of the COOP page
-- *opener-url*: if the COOP document and all its redirect are same-origin with the opener, the sanitized opener URL, an empty string otherwise.
+- *effectivePolicy*: the *report only value* of the COOP page
+- *openerUrl*: if the COOP document and all its redirect are same-origin with the opener, the sanitized opener URL, an empty string otherwise.
 - *referrer*: the referrer of the COOP document.
 - *violation*: "access-from-coop-page-to-opener"
 - *property*: the name of the property being accessed
-- *source-file*, *lineno*, *colno*: if the user agent is currently executing script and can extract a source file's URL, line number and column number from the global object, set those accordingly.
+- *sourceFile*, *lineNumber*, *colomnNumber*: if the user agent is currently executing script and can extract a source file's URL, line number and column number from the global object, set those accordingly.
 
 When the document is notifed of a **blocked access from the COOP page to a window it opened**, it should generate a report
 for the COOP document URL, the current environment and the following body:
 
 - *disposition*: "reporting"
-- *effective-policy*: the *report only value* of the COOP page
+- *effectivePolicy*: the *report only value* of the COOP page
 - *openee-url*: if the document opened by the COOP page and all its redirects are same-origin with the COOP document, the sanitized URL of the openee document, an empty string otherwise.
-- *initial-popup-url*: if the COOP document is same-origin with the popup creator, the sanitized initial popup URL, an empty string otherwise.
+- *initialPopupUrl*: if the COOP document is same-origin with the popup creator, the sanitized initial popup URL, an empty string otherwise.
 - *violation*: "access-from-coop-page-to-openee"
 - *property*: the name of the property being accessed
-- *source-file*, *lineno*, *colno*: if the user agent is currently executing script and can extract a source file's URL, line number and column number from the global object, set those accordingly.
+- *sourceFile*, *lineNumber*, *columnNumber*: if the user agent is currently executing script and can extract a source file's URL, line number and column number from the global object, set those accordingly.
 
 When the document is notifed of a **blocked access from the COOP page to another type of document**, it should generate a report
 for the COOP document URL, the current environment and the following body:
 
 - *disposition*: "reporting"
-- *effective-policy*: the *report only value* of the COOP page
-- *other-document-url*: if the COOP document and all its redirect are same-origin with the other document and all its redirects, the sanitized URL of the other document, an empty string otherwise.
+- *effectivePolicy*: the *report only value* of the COOP page
+- *otherDocumentUrl*: if the COOP document and all its redirect are same-origin with the other document and all its redirects, the sanitized URL of the other document, an empty string otherwise.
 - *violation*: "access-from-coop-page-to-other"
 - *property*: the name of the property being accessed
-- *source-file*, *lineno*, *colno*: if the user agent is currently executing script and can extract a source file's URL, line number and column number from the global object, set those accordingly.
+- *sourceFile*, *lineNumber*, *columnNumber*: if the user agent is currently executing script and can extract a source file's URL, line number and column number from the global object, set those accordingly.
 
 > All reports for blocked access from the COOP page should also notify ReportingObservers, unlike the rest of the reports described in this page.
 
 When the document is notifed of a **blocked access to the COOP page from its opener**, it should generate a report for the COOP document URL, the current environment and the following body:
 
 - *disposition*: "reporting"
-- *effective-policy*: the *report only value* of the COOP page
-- *opener-url*: if the COOP document and all its redirect are same-origin with the opener, the sanitized opener URL, an empty string otherwise.
+- *effectivePolicy*: the *report only value* of the COOP page
+- *openerUrl*: if the COOP document and all its redirect are same-origin with the opener, the sanitized opener URL, an empty string otherwise.
 - *referrer*: the referrer of the COOP document.
 - *violation*: "access-to-coop-page-from-opener"
 - *property*: the name of the property being accessed.
@@ -251,17 +251,17 @@ When the document is notifed of a **blocked access to the COOP page from its ope
 When the document is notifed of a **blocked access to the COOP page from a window it opened**, it should generate a report for the COOP document URL, the current environment and the following body:
 
 - *disposition*: "reporting"
-- *effective-policy*: the *report only value* of the COOP page
-- *openee-url*: if the document opened by the COOP page and all its redirects are same-origin with the COOP document, the sanitized URL of the openee document, an empty string otherwise.
-- *initial-popup-url*: if the COOP document is same-origin with the popup creator, the sanitized initial popup URL, an empty string otherwise.
+- *effectivePolicy*: the *report only value* of the COOP page
+- *openeeUrl*: if the document opened by the COOP page and all its redirects are same-origin with the COOP document, the sanitized URL of the openee document, an empty string otherwise.
+- *initialPopupUrl*: if the COOP document is same-origin with the popup creator, the sanitized initial popup URL, an empty string otherwise.
 - *violation*: "access-to-coop-page-from-openee"
 - *property*: the name of the property being accessed.
 
 When the document is notifed of a **blocked access to the COOP page from another document**, it should generate a report for the COOP document URL, the current environment and the following body:
 
 - *disposition*: "reporting"
-- *effective-policy*: the *report only value* of the COOP page
-- *other-document-url*: if the COOP document and all its redirect are same-origin with the other document and all its redirects, the sanitized URL of the other document, an empty string otherwise.
+- *effectivePolicy*: the *report only value* of the COOP page
+- *otherDocumentUrl*: if the COOP document and all its redirect are same-origin with the other document and all its redirects, the sanitized URL of the other document, an empty string otherwise.
 - *violation*: "access-to-coop-page-from-other"
 - *property*: the name of the property being accessed.
 
