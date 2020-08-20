@@ -171,11 +171,19 @@ In report-only mode, monitoring accesses is not enough to distinguish accesses f
 
 ![Virtual browsing context group id 1](/COOP_virtual_bcg1.png)
 
+*We have a page on URL A, which opens in a popup another URL B1, which has a COOP report-only value of same-origin. This popup also opens in another popup URL B2 (same-origin with B1), which has the same COOP report-only value of same-origin. The enforcement of COOP would place the page B1 in a different browsing context group from A. B2 would stay in the same browsing context group as its opener as their COOPs and origins match.*
+
 ![Virtual browsing context group id 2](/COOP_virtual_bcg2.png)
+
+*The second popup navigates to URL C, with a default COOP of unsafe-none. The enforcement of the COOP of the previouys page (B2) would have triggered a browsing context group switch. We would end up with three pages in 3 different browsing context groups.*
 
 ![Virtual browsing context group id 3](/COOP_virtual_bcg3.png)
 
+*The first page navigates to URL B1, which has a COOP report-only value of same-origin. The enforcement of COOP would have put the page in a new browsing context group. This browsing context group would be brand new, and not the one where we currently have another B1 page.*
+
 ![Virtual browsing context group id 4](/COOP_virtual_bcg4.png)
+
+*The third page navigates to A, with a default COOP of unsafe-none. Since it matches the previous page COOP of unsafe-none, there is no browsing context group switch.*
 
 ### WindowProxy changes
 
