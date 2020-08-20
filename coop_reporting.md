@@ -397,8 +397,9 @@ No.
 
 ## Limitations of the API
 
-The API does not report blocked accesses to/from the COOP window when COOP is enforced. This kind of report is only available in report-only mode. In particular, the reports are only emitted for breakages that would happen if the report-only value of COOP was enforced compared to the regular value of COOP.
+There are several situations where the reporting API will not report breakages due to COOP:
 
+1. The API does not report blocked accesses to/from the COOP window when COOP is enforced. This kind of report is only available in report-only mode. In particular, the reports are only emitted for breakages that would happen if the report-only value of COOP was enforced compared to the regular value of COOP.
 > So if a website sets COOP same-origin-allow-popups and report-only COOP same-origin, they wouldn't receive reports for breakages due to the enforcement for the same-origin-allow-popups policy. However, they would get reports for the additional breakages that would occur if we were to enforce a policy of same-origin.
-
-The API as defined currently does not give a way for cross-origin subframes embedded in a COOP page to detect that they have been broken by their parent COOP. There are privacy and security considerations to emitting reports bound for subframes based on a policy their cross-origin parent set. At the same time, there is no good way for an iframe to signal that it does not want to be embedded in a particular COOP environment, so it's not clear how actionable the reports would be anyway. Should we offer such a mechanism, we should extend the COOP reporting API to provide meaningful information to cross-origin iframes.
+2. The API does not report problematic accesses to same-origin Window properties, even in report-only mode. It does report accesses to cross-origin properties made by same-origin windows.
+3. Cross-origin subframes embedded in a COOP page cannot detect that they have been broken by their parent COOP. There are privacy and security considerations to emitting reports bound for subframes based on a policy their cross-origin parent set. At the same time, there is no good way for an iframe to signal that it does not want to be embedded in a particular COOP environment, so it's not clear how actionable the reports would be anyway. Should we offer such a mechanism, we should extend the COOP reporting API to provide meaningful information to cross-origin iframes.
