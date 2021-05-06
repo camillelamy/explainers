@@ -1,5 +1,7 @@
 # Anonymous iframes
 
+Author: clamy@google.com - Last Updated: 2021-05-06
+
 ## A problem
 
 Sites that wish to continue using SharedArrayBuffer must opt-into cross-origin isolation. Among other things, cross-origin isolation will block the use of cross-origin resources and documents unless those resources opt-into inclusion via either CORS or CORP. This behavior ships today in Firefox, and Chrome aims to ship it as well in Chrome 92.
@@ -70,6 +72,8 @@ The [algorithm for enforcing COEP on a navigation response](https://html.spec.wh
 
 This also means that anonymous iframes can be embedded in cross-origin isolated pages without documents in them having to deploy COEP.
 
+## Security and privacy considerations
+
 ### Threat model for anonymous iframes
 
 Because anonymous iframes can be embedded in crossOriginIsolated contexts, in browsers without Out-of-Process-Iframes, we have to consider that their embedder can perform a Spectre attack to read any of the anonymous iframes resources, including the HTML. Our approach to this threat is not to prevent the attack from happening, but to avoid loading personalized data so that an attacker has only access to publicly available data.
@@ -136,3 +140,77 @@ This solution runs into compatibility issues:
 * To allow anonymous iframes to access one another if they are coming from the same origin we must maintain a mapping of original origin to opaque origin for each anonymous iframe subtree, which is complex.
 * We would probably need to standardize what happens when a frame with an opaque origin wants to access a storage API since sandboxed iframes with opaque origins do not have access to storage APIs at all.
 * It is not clear how this would interact with other checks pertaining on origin (e.g. X-Frame-Options, various CSP checks, …) potentially leading to further breakages.
+
+### Privacy
+
+The main privacy threat posed by this API is the risk of a data leak through a side channel attack like Spectre. As detailed in the threat model above, we believe the API provides a meaningful defense against Spectre attacks, and thus does not pose a privacy risk.
+
+## Self-Review Questionnaire: Security and Privacy
+
+#### What information might this feature expose to Web sites or other parties, and for what purposes is that exposure necessary?
+
+The `Sec-Fetch-COEP` header exposes the COEP of the environment a resource will be rendered in. This allows a server to decline answering a request if they do not want their resource to be embedded in a more dangerous environment. The `Document.credentials` method exposes whether a document is loaded in an anonymous iframe or not, allowing a document to change its behavior depending on the availability of existing credentials or stored resources.
+
+#### Do features in your specification expose the minimum amount of information necessary to enable their intended uses?
+
+Yes.
+
+#### How do the features in your specification deal with personal information, personally-identifiable information (PII), or information derived from them?
+
+The feature does not deal with PII.
+
+#### How do the features in your specification deal with sensitive information?
+
+The feature does not deal with sensitive information.
+
+#### Do the features in your specification introduce new state for an origin that persists across browsing sessions?
+
+No.
+
+#### Do the features in your specification expose information about the underlying platform to origins?
+
+No.
+
+#### Does this specification allow an origin to send data to the underlying platform?
+
+No.
+
+#### Do features in this specification allow an origin access to sensors on a user’s device?
+
+No.
+
+#### What data do the features in this specification expose to an origin? Please also document what data is identical to data exposed by other features, in the same or different contexts.
+
+The `Sec-Fetch-COEP` header exposes the COEP of the environment a resource will be rendered in. This corresponds to the COEP of the embedder of the resource, or the fact that a resource is loading in an anonymous iframe. This allows a server to decline answering a request if they do not want their resource to be embedded in a more dangerous environment.
+
+#### Do features in this specification enable new script execution/loading mechanisms?
+
+No.
+
+#### Do features in this specification allow an origin to access other devices?
+
+No.
+
+#### Do features in this specification allow an origin some measure of control over a user agent’s native UI?
+
+No.
+
+#### What temporary identifiers do the feautures in this specification create or expose to the web?
+
+None.
+
+#### How does this specification distinguish between behavior in first-party and third-party contexts?
+
+There is no distinction between first-party and third-party ability to embed anonymous iframes. This is due to the recursive nature of COEP. To deploy COEP in a frame, all child frames need to deploy COEP first. Since this is a mechanism to help with the deployment of COEP, we want to offer third-party iframes the option to ease their own COEP deployment by being able to embed their own third party content as anonymous iframes.
+
+#### How do the features in this specification work in the context of a browser’s Private Browsing or Incognito mode?
+
+No difference with regular mode.
+
+#### Does this specification have both "Security Considerations" and "Privacy Considerations" sections?
+
+Yes.
+
+#### Do features in your specification enable origins to downgrade default security protections?
+
+No.
