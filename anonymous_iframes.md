@@ -116,6 +116,10 @@ The anonymous iframe could use side-channels (e.g. broadcast channels, postMessa
 
 Depending on whether the mechanisms highlighted above are a common way of personalizing resources, this might be out-of-scope. What we want to defend against is unsuspecting websites being embedded and attacked by their embedder to steal user data. If the anonymous iframe is bent on escaping the constraints of anonymous iframes to personalize itself, then one can argue that it understands the contexts and risks it is loaded in and accepts them. Provided our security model is safe enough outside of anonymous iframes, the personalization will only affect resources that are same-origin with the iframe anyway. Cross-origin resources to the framed document will still be unpersonalized, making this equivalent to COEP cors-or-credentialless from a security perspective.
 
+### Privacy
+
+The main privacy threat posed by this API is the risk of a data leak through a side channel attack like Spectre. As detailed in the threat model above, we believe the API provides a meaningful defense against Spectre attacks, and thus does not pose a privacy risk.
+
 ## Alternatives considered
 
 ### Sandboxed iframe
@@ -140,10 +144,6 @@ This solution runs into compatibility issues:
 * To allow anonymous iframes to access one another if they are coming from the same origin we must maintain a mapping of original origin to opaque origin for each anonymous iframe subtree, which is complex.
 * We would probably need to standardize what happens when a frame with an opaque origin wants to access a storage API since sandboxed iframes with opaque origins do not have access to storage APIs at all.
 * It is not clear how this would interact with other checks pertaining on origin (e.g. X-Frame-Options, various CSP checks, …) potentially leading to further breakages.
-
-### Privacy
-
-The main privacy threat posed by this API is the risk of a data leak through a side channel attack like Spectre. As detailed in the threat model above, we believe the API provides a meaningful defense against Spectre attacks, and thus does not pose a privacy risk.
 
 ## Self-Review Questionnaire: Security and Privacy
 
