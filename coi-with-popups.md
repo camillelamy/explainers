@@ -28,3 +28,17 @@ To support this, we plan on adding the notion of **cross-origin isolation mode**
 Child browsing contexts will inherit their **cross-origin isolation mode** from their parent.
 
 > In practice, on a platform that supports crossOriginIsolation, this means that all browsing contexts in page with a COOP of `same-origin-allow-popups-plus-coep` have a *cross-origin isolation mode* of `concrete`. When the page opens a popup and navigates it towards a COOP `unsafe-none` document, all the browsing contexts in the popup will have a *cross-origin isolation mode* of `none`. Hence the browsing context group has a [cross-origin isolation mode](https://html.spec.whatwg.org/multipage/browsers.html#cross-origin-isolation-mode) of `mixed`.
+
+### COOP same-origin-allow-popups-plus-coep and Agent Clusters
+
+For COOP `same-origin-allow-popups-plus-coep` pages to be crossOriginIsolated, the browser must provide the right security guarantees that will enable access to the APIs gated behind crossOriginIsolation. There are two risks here:
+1. [Spectre](https://www.w3.org/TR/post-spectre-webdev/). Spectre attacks are way more efficient in crossOriginIsolated contexts due to the presence of high resolution timers.
+1. crossOriginIsolated APIs that do not respect the same-origin policy like [performance.measureUserAgentSpecificMemory](https://github.com/WICG/performance-measure-memory).
+
+Fortunately, both issues can be solved by modifying the scoping of [Agent Clusters](https://tc39.es/ecma262/#sec-agent-clusters). We will make two changes:
+1. Like in COOP `same-origin-plus-coep` pages, we plan on scoping Agent Clusters in COOP `same-origin-allow-popup-plus-coep` based on origin rather than site URL.
+2. We will add a **cross-origin isolation mode** value to [Agent Cluster keys](https://html.spec.whatwg.org/multipage/webappapis.html#agent-cluster-key), in addition to the Site URL or the origin. When [requesting a similar-origin window agent](https://html.spec.whatwg.org/multipage/webappapis.html#obtain-similar-origin-window-agent), we will also take into account the *cross-origin isolation mode* of the browsing context requesting the Agent Cluster, not just of the browsing context group. This will be factored into teh computation of Agent Cluster key, meaning that browsing contexts requesting an Agent Cluster for the same origin would still be given different Agent Clusters if they have different cross-origin isolation modes.
+
+Why does this solve our issues? First, crossOriginIsolated APIs that do not respect the same-origin policy are scoped to an Agent Cluster, per the [crossOriginIsolation threat model](https://arturjanc.com/coi-threat-model.pdf). This means that we can safely enable them on a COOP `cross-origin-allow-popups-plus-coep` page, as the page cannot share any Agent Cluster with a non-cross origin isolated popup it opens.
+
+Second, defending against Spectre requires putting documents in different processes. This is only possible if the documents cannot access each other synchronously and cannot share memory. In practice, this means that the document must belong to different Agent Clusters. By ensuring that Agent Clusters cannot be shared by documents on pages with different COOP status, we ensure that pages with different COOP statuses can be put in different processes, even without Out-of-Process-Iframes. This is an efficient mitigation against Spectre, meaning that we can safely enable high precision timers in COOP `same-origin-allow-popups-plus-coep` pages.
