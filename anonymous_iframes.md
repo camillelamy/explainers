@@ -72,6 +72,10 @@ The [algorithm for enforcing COEP on a navigation response](https://html.spec.wh
 
 This also means that anonymous iframes can be embedded in cross-origin isolated pages without documents in them having to deploy COEP.
 
+### Anonymous iframes and autofill/password managers
+
+Browsers that implement autofill or password manager functionalities should make them unavailable in anonymous iframes. The goal of anonymous iframes is to preserve storage critical to an iframe function, but to avoid users logging into anonymous iframes. Autofill and password managers make logging in easier, and so should be avoided to prevent users accidentally logging in. This also allows anonymous iframes to have a threat model similar to a phishing page (see the Threat model part of this explainer below).
+
 ## Security and privacy considerations
 
 ### Threat model for anonymous iframes
@@ -102,7 +106,7 @@ In terms of lifetime and sharing of credentials, they are bound to the lifetime 
 
 This is a variant of the previous attack, where the user embeds an iframe with private subresources the user is only allowed to access due to their network position. For example, resources found on the user private network, or resources personalized based on a user IP address.
 
-We plan on dealing with the private network case by deploying Private Network Access restrictions. During the CORS preflight introduced by [Private Network Access restrictions](https://wicg.github.io/private-network-access/), the servers will be able to check that their resource will be rendered in an anonymous iframe context by checking the Sec-Fetch-COEP header. Note that only local-network documents which enable HTTPS could potentially be exposed (because MIX should prevent them from being loaded by a page with COI). This isn't a strong mitigation, but will matter for things like common IoT devices. The other cases of resources personalized based on IP address are arguably a security footgun already. We think that the increased risk there is okay compared to the advantage of not using credentials on more requests overall.
+We plan on dealing with the private network case by deploying Private Network Access restrictions. During the CORS preflight introduced by [Private Network Access restrictions](https://wicg.github.io/private-network-access/), the servers will be able to check that their resource will be rendered in an anonymous iframe context by checking the Sec-Fetch-COEP header. Note that only local-network documents which enable HTTPS could potentially be exposed (because MIX should prevent HTTP resources from being loaded by a page with COI). This isn't a strong mitigation, but will matter for things like common IoT devices. The other cases of resources personalized based on IP address are arguably a security footgun already. We think that the increased risk there is okay compared to the advantage of not using credentials on more requests overall.
 
 #### Capture of user input
 
