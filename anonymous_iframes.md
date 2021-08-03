@@ -157,7 +157,7 @@ The `Sec-Fetch-COEP` header exposes the COEP of the environment a resource will 
 
 #### Do features in your specification expose the minimum amount of information necessary to enable their intended uses?
 
-Yes.
+Yes. The only thing exposed is whether a frame is anonymous or not.
 
 #### How do the features in your specification deal with personal information, personally-identifiable information (PII), or information derived from them?
 
@@ -169,19 +169,19 @@ The feature does not deal with sensitive information.
 
 #### Do the features in your specification introduce new state for an origin that persists across browsing sessions?
 
-No.
+No the feature does not introduce new state for an origin.
 
 #### Do the features in your specification expose information about the underlying platform to origins?
 
-No.
+No the feature behaves the same regardless of the underlying platform.
 
 #### Does this specification allow an origin to send data to the underlying platform?
 
-No.
+No this feature does not change what data an origin is allowed to send to the underlying platform.
 
 #### Do features in this specification allow an origin access to sensors on a user’s device?
 
-No.
+No the feature has no impacty on sensor access.
 
 #### What data do the features in this specification expose to an origin? Please also document what data is identical to data exposed by other features, in the same or different contexts.
 
@@ -189,19 +189,19 @@ The `Sec-Fetch-COEP` header exposes the COEP of the environment a resource will 
 
 #### Do features in this specification enable new script execution/loading mechanisms?
 
-No.
+No the feature does not enable new script execution/loading.
 
 #### Do features in this specification allow an origin to access other devices?
 
-No.
+No the feature is strictly confined to one device.
 
 #### Do features in this specification allow an origin some measure of control over a user agent’s native UI?
 
-No.
+No the feature has no impact on UI.
 
 #### What temporary identifiers do the feautures in this specification create or expose to the web?
 
-None.
+No temporary identifiers are created.
 
 #### How does this specification distinguish between behavior in first-party and third-party contexts?
 
@@ -217,4 +217,4 @@ Yes.
 
 #### Do features in your specification enable origins to downgrade default security protections?
 
-No.
+This feature has no impact on secure context and same-origin policy. It does allow to use features which are right now gated behind having COOP and COEP enabled. However, it imposes restrictions on documents to make this safe.
