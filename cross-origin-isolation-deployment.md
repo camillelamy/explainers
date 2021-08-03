@@ -3,9 +3,9 @@ clamy@google.com
 
 ## SharedArrayBuffers, Spectre and CrossOriginIsolation
 
-The Web relies on the same-origin security model. Following this security model, documents can embed cross-origin resources such as images, scripts, or iframes. However, they do not have access to the actual bits of the resources they embed.
+The Web relies on the [same-origin policy](https://developer.mozilla.org/en-US/docs/Web/Security/Same-origin_policy) security model. Following this security model, documents can embed cross-origin resources such as images, scripts, or iframes. However, they do not have access to the actual bits of the resources they embed.
 
-Following Spectre, this is no longer true. Spectre allows an attacker to read any resource located in the same process. Browsers put all the subresources a document uses in the same process as the document. Same-site documents in a browsing context group are also always located in the same process. Finally, in browsers without Site Isolation, all documents of the same page must be located in the same process. This means that any popup opened by a page must be placed in the same process (because it could eventually embed an iframe that is same-site with a document in the page that opened it). This means that the attack surface of Spectre is:
+Following [Spectre](https://chromium.googlesource.com/chromium/src/+/refs/heads/main/docs/security/side-channel-threat-model.md#Conclusion), this is no longer true. Spectre allows an attacker to read any resource located in the same process. Browsers put all the subresources a document uses in the same process as the document. Same-site documents in a browsing context group are also always located in the same process. Finally, in browsers without Site Isolation, all documents of the same page must be located in the same process. This means that any popup opened by a page must be placed in the same process (because it could eventually embed an iframe that is same-site with a document in the page that opened it). This means that the attack surface of Spectre is:
 * With SiteIsolation: any resource located in a same-site document in the browsing context group.
 * Without SiteIsolation: any resource in the browsing context group.
 
@@ -13,7 +13,7 @@ Spectre efficiency is correlated on the precision of timers used in the attack. 
 
 This was a suboptimal situation. First, even with SiteIsolation, regular subresources are not protected from a Spectre attack. Second, implementing Site Isolation is a heavy engineering investment for browsers, and may not even be possible on all platforms (in particular on low-end mobile devices). SharedArrayBuffers provide a shared memory API that is particularly useful for heavy web apps that perform a lot of computations. So there was a desire to bring SharedArrayBuffers on all browsers, without waiting for SiteIsolation support.
 
-In order to do so, CrossOriginOpenerPolicy, CrossOriginEmbedderPolicy and the concept of crossOriginIsolation were designed. Rather than preventing a Spectre attack from happening, COOP and COEP ensures that every subresource in the Spectre attack surface (the browsing context group) agrees to be loaded in a potentially dangerous environment where they could be legible by a cross-origin resource. We name such environments crossOriginIsolated.
+In order to do so, [CrossOriginOpenerPolicy](https://html.spec.whatwg.org/multipage/origin.html#cross-origin-opener-policy-value), [CrossOriginEmbedderPolicy](https://html.spec.whatwg.org/multipage/origin.html#embedder-policy-value) and the concept of [crossOriginIsolation](https://html.spec.whatwg.org/multipage/browsers.html#bcg-cross-origin-isolation) were designed. Rather than preventing a Spectre attack from happening, COOP and COEP ensures that every subresource in the Spectre attack surface (the browsing context group) agrees to be loaded in a potentially dangerous environment where they could be legible by a cross-origin resource. We name such environments crossOriginIsolated.
 
 The core of the mechanism is Cross-origin Embedder Policy (COEP). When a document enables COEP, it can only load cross-origin subresources through CORS or if they have an appropriate CORP header. The CORP header serves as an opt-in, where the resource signifies that it is ok to be loaded in the crossOriginIsolated environment.
 
@@ -61,19 +61,19 @@ All those challenges have prevented websites from being able to deploy crossOrig
 To fix this, we are planning three extensions to COOP and COEP that address the challenges presented above. With these three extensions, websites should be able to support crossOriginIsolation without breaking their apps and be able to use SharedArrayBuffers.
 
 The three planned extensions are:
-* COOP same-origin-allow-popups-plus-coep
-* COEP credentialless
-* Anonymous iframes
+* [COOP same-origin-allow-popups-plus-coep](https://github.com/camillelamy/explainers/blob/main/coi-with-popups.md)
+* [COEP credentialless](https://github.com/WICG/credentiallessness/blob/main/explainer.md)
+* [Anonymous iframes](https://github.com/camillelamy/explainers/blob/main/anonymous_iframes.md)
 
 ### COOP same-origin-allow-popups-plus-coep
 
-To allow crossOriginIsolated pages to use popup-based OAuth/payment flows, we plan to have COOP same-origin-allow-popups enable crossOriginIsolation when used in conjunction with COEP. This would create a new COOP value: COOP same-origin-allow-popups-plus-coep. Like COOP same-origin-allow-popups, COOP same-origin-allow-popups-plus-coep allows popups opened by the page to stay in the same browsing context group. The popups can still communicate with their opener via WindowProxy postMessage.
+To allow crossOriginIsolated pages to use popup-based OAuth/payment flows, we plan to have COOP same-origin-allow-popups enable crossOriginIsolation when used in conjunction with COEP. This would create a new COOP value: [COOP same-origin-allow-popups-plus-coep](https://github.com/camillelamy/explainers/blob/main/coi-with-popups.md). Like COOP same-origin-allow-popups, COOP same-origin-allow-popups-plus-coep allows popups opened by the page to stay in the same browsing context group. The popups can still communicate with their opener via WindowProxy postMessage.
 
 Without further restriction, this would be problematic from a security perspective as the attack surface of Spectre is the browsing context group in browsers without SiteIsolation. We plan to add additional restrictions to COOP same-origin-allow-popups-plus-coep can be placed in a separate process from non crossOriginIsolated popups it opens, even on browsers without SiteIsolation. This then reduces the surface of attack of a Spectre attack to the crossOriginIsolated page, making it safe to have popups in the same browsing context group.
 
 ### COEP credentialless
 
-To simplify the deployment of COEP on pages that embed 3rd party subresources, we plan to introduce a new COEP mode: COEP credentialless.
+To simplify the deployment of COEP on pages that embed 3rd party subresources, we plan to introduce a new COEP mode: [COEP credentialless](https://github.com/WICG/credentiallessness/blob/main/explainer.md).
 
 COEP require-corp will block non-CORS cross-origin requests unless they have a CORP header. This ensures that cross-origin resources have opted into being loaded in the crossOriginIsolated environment.
 
@@ -81,7 +81,7 @@ COEP credentialless takes a different approach. Instead of ensuring that non-COR
 
 ### Anonymous iframes
 
-Anonymous iframes are a generalization of COEP credentialless to support 3rd party iframes that may not deploy COEP. Like with COEP credentials, we replace the opt-in of cross-origin subresources by avoiding to load non-public resources.
+[Anonymous iframes](https://github.com/camillelamy/explainers/blob/main/anonymous_iframes.md) are a generalization of COEP credentialless to support 3rd party iframes that may not deploy COEP. Like with COEP credentials, we replace the opt-in of cross-origin subresources by avoiding to load non-public resources.
 
 Because this applies to iframes, the restrictions are more numerous than in COEP credentialless. In particular, the documents loaded in anonymous iframes have not opted into being loaded in a crossOriginIsolated environment. In COEP regular mode, we treat the opt-in of the document as an opt-in for all its same-origin subresources. This no longer applies, so anonymous iframes are putting restrictions on credentials for all requests (cross-origin and same-origin). In addition, we’re also restricting the access to storage APIs for documents in anonymous iframes, as they could be used to load personalized data.
 
