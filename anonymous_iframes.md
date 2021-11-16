@@ -1,30 +1,73 @@
 # Anonymous iframes
 
-Author: clamy@google.com - Last Updated: 2021-05-06
+- **Author**: clamy@google.com, arthursonzogni@google.com
+- **Created**: 2021-05-06
+- **Last Updated**: 2021-11-10
+
+## Table of content
+- [A problem](#a-problem)
+- [A proposal](#a-proposal)
+- [Security and privacy considerations](#security-and-privacy-considerations)
+- [Alternatives considered](#alternatives-considered)
+- [Self-Review Questionnaire: Security and Privacy](#self-review-questionnaire--security-and-privacy)
 
 ## A problem
 
-Sites that wish to continue using SharedArrayBuffer must opt-into cross-origin isolation. Among other things, cross-origin isolation will block the use of cross-origin resources and documents unless those resources opt-into inclusion via either CORS or CORP. This behavior ships today in Firefox, and Chrome aims to ship it as well in Chrome 92.
+Deploying COEP is difficult for some developers, because of 3rd party iframes.
+This is the typical scenario:
 
-CrossOriginIsolation is also being used to gate new features, including features that require additional opt-in in addition to crossOriginIsolation, like [getViewportMedia](https://github.com/w3c/mediacapture-screen-share/issues/155#issuecomment-812269225).
+1. End users needs performant websites.
+2. Some developers get performant website, by using
+   multithreading/SharedArrayBuffer on the main document.
+3. To mitigate Spectre attacks: Chrome, Firefox and Safari
+   gate SharedArrayBuffer usage behind the [crossOriginIsolated][coi]
+   capability. This requires [COOP and COEP][coop-coep].
+4. COEP requirement is recursive: 3rd party iframes are required to deploy COEP
+   in order to be embeddable inside a COEP parent.
+5. Waiting for 3rd party to deploy COEP is painful for developers. This is out
+   of their control most of the time.
 
-The opt-in requirement is generally positive, as it ensures that developers have the opportunity to adequately evaluate the rewards of being included cross-site against the risks of potential data leakage via those environments. It poses adoption challenges, however, as it does require developers to adjust their servers to send an explicit opt-in. This is challenging in cases where there's not a single developer involved, but many. Google Ads, for example, includes third-party content, and it seems somewhat unlikely that they'll be able to ensure that all the ads creators will do the work to opt-into being loadable.
+Outside of performance, there are additionnal reasons website want to deploy
+COEP: Getting the [cross-origin-isolated capability][coi], [high resolution
+timers][highres-timer], [getViewportMedia][getViewPortMedia], etc...
 
-It seems clear that adoption of any opt-in mechanism is going to be limited. From a deployment perspective (especially with an eye towards changing default behaviors), it would be ideal if we could find an approach that provided robust-enough protection against accidental cross-process leakage without requiring an explicit opt-in. We presented a first version of this mechanism in [Credentiallessness](https://github.com/mikewest/credentiallessness), which evolved into COEP credentialless. This new mode of COEP tackles subresources included in a frame. It is a good solution for deploying COEP when one includes cross-origin subresources without CORP headers, that come from a CDN for example. However, we still need to ease deployment of COEP for pages that embed cross-origin frames.
+[coi]: https://html.spec.whatwg.org/#concept-settings-object-cross-origin-isolated-capability
+[highres-timer]: https://www.w3.org/TR/hr-time/#:~:text=if%20crossoriginisolatedcapability%20is%20true
+[getViewPortMedia]: https://github.com/w3c/mediacapture-screen-share/issues/155#issuecomment-812269225
+[coop-coep]: https://web.dev/coop-coep/
+[coep-credentialless]:https://wicg.github.io/credentiallessness/
+
+Deploying COEP is challenging in cases where there's not a single developer
+involved, but many. Google Ads, for example, includes third-party content, and
+it seems somewhat unlikely that they'll be able to ensure that all the ads
+creators will do the work to opt-into being loadable.
 
 ## A proposal
 
-COEP, and the opt-in mechanism for [getViewportMedia](https://github.com/w3c/mediacapture-screen-share/issues/155#issuecomment-812269225) currently tackles data leak attacks by ensuring that cross-origin resources explicitly opt into being loaded in an environment with higher risks. This way, servers can protect vulnerable resources by not having them opt into being loaded in high risk environments. COEP cors-or-credentialles and the mechanism we are proposing, anonymous iframes, take a different approach. Instead of requiring opt-in to protect vulnerable resources, we aim to only make requests that result in public data being loaded in high-risk environments. Essentially, this means preventing personalized resources from being loaded.
+It would be ideal if we could find an approach that provided robust-enough
+protection against accidental cross-process leakage without requiring an
+explicit opt-in.
+
+COEP, and the opt-in mechanism for [getViewportMedia][getViewportMedia]
+currently tackles data leak attacks by ensuring that cross-origin resources
+explicitly opt into being loaded in an environment with higher risks. This way,
+servers can protect vulnerable resources by not having them opt into being
+loaded in high risk environments. [COEP:credentialless][coep-credentialless] and
+the mechanism we are proposing, anonymous iframes, take a different approach.
+Instead of requiring opt-in to protect vulnerable resources, we aim to only make
+requests that result in public data being loaded in high-risk environments.
+Essentially, this means preventing personalized resources from being loaded.
 
 ### What are anonymous iframes?
 
 Documents can create anonymous iframes by adding an attribute to the iframe tag:
 
-`<iframe src=”example.com” credentials=omit>`
+`<iframe anonymous src=”example.com”>`
 
-This property is stored on the Browsing Context. It is inherited by any child browsing context of the anonymous iframe, e.g.:
+This property is stored on the Browsing Context. It is inherited by any child
+browsing context of the anonymous iframe, e.g.:
 
-![](/anonymous_iframe1.png)
+![](https://docs.google.com/drawings/d/e/2PACX-1vQDqWv-shIWWZ3gvnM51mQrN-DkcXPDQEZKkpEtT7PKMJa8fBUVFE__RZkI-LKbrhqj8pnnmVmTfAcD/pub?w=504&h=638)
 
 Similar to sandbox flags, the attribute can be changed programmatically, but the change will only take effect on the next navigation taking place inside the iframe.
 
@@ -35,7 +78,9 @@ In parallel with the iframe attribute, we plan to add a new Fetch Metadata heade
 * `Sec-Fetch-COEP: credentialless`: the resource will be rendered in a context with a COEP of credentialless.
 * `Sec-Fetch-COEP: anonymous`: the resource will be rendered in an anonymous iframe.
 
-Additionally, we plan on adding a `credentials` method on the `Document` object. By default, this will return `present`. In anonymous iframes it will return `omit`, allowing a document to check whether it was loaded in an anonymous iframe.
+Additionally, we plan on adding a `document.anonymous` read-only attribute. By
+default, this will return `false`. In anonymous iframes it will return `true`,
+allowing a document to check whether it was loaded in an anonymous iframe.
 
 ### Anonymous iframes and credentials
 
@@ -43,11 +88,11 @@ Anonymous iframes cannot use existing credentials and shared storage for their o
 
 To achieve this, we rely on modifying the [storage key](https://storage.spec.whatwg.org/#storage-key) used to access shared storage by anonymous iframes. As part of the [client-side storage partitioning effort](https://privacycg.github.io/storage-partitioning/) (declined across [storage APIs](https://github.com/wanderview/quota-storage-partitioning/blob/main/explainer.md), [network state](https://github.com/MattMenke2/Explainer---Partition-Network-State) and [Cookie State](https://github.com/DCtheTall/CHIPS)), the storage key of an environment will no longer be its simple origin as currently described in the spec. Instead it will be a combination of the origin and the top-level site URL. In an anonymous iframe, we will replace the top-level site URL in the partition key by a nonce value, determined once per page. This nonce will be recomputed every time the top-level frame navigates. This ensures that anonymous iframes cannot share storage keys with non-anonymous iframes. Because the nonce is changed on every page navigation, anonymous iframes do not share storage across different pages, or across navigations.
 
-![](/anonymous_iframe2.png)
+![](https://docs.google.com/drawings/d/e/2PACX-1vQexnC7CIXMI9hmhaoJBIww7IZQ8W40Nx0vD_jqk5Go6YfIpa1ZjS7fVNT0fjc8RMScwg3jA9FDI-HL/pub?w=550&h=866)
 
 *Storage and credentials are only shared among anonymous iframes, following normal site/origin access checks.*
 
-![](/anonymous_iframe3.png)
+![](https://docs.google.com/drawings/d/e/2PACX-1vQ2n_iCkOn9j5l7JAEu-h2trGtdXFma0sjreBiv_AYhdEECopoXPFPwUoIwROwIq9iSkdpNrI9dpRGT/pub?w=1196&h=431)
 
 *Storage and credentials created by anonymous iframes are no longer accessible after the top level frame navigated away because the Storage key for anonymous iframes will have changed. This applies to top-level history navigations as well, meaning that when the page navigates away, anything stored by anonymous iframes can be cleared by the browser, unless the page was stored in a back-forward cache.*
 
@@ -118,7 +163,7 @@ This is not in scope for anonymous iframes. An attacker can already do a phishin
 
 The anonymous iframe could use side-channels (e.g. broadcast channels, postMessage) to attempt to get a form of personalization despite the lack of credentials. The personalized resources are then readable by the embedder.
 
-Depending on whether the mechanisms highlighted above are a common way of personalizing resources, this might be out-of-scope. What we want to defend against is unsuspecting websites being embedded and attacked by their embedder to steal user data. If the anonymous iframe is bent on escaping the constraints of anonymous iframes to personalize itself, then one can argue that it understands the contexts and risks it is loaded in and accepts them. Provided our security model is safe enough outside of anonymous iframes, the personalization will only affect resources that are same-origin with the iframe anyway. Cross-origin resources to the framed document will still be unpersonalized, making this equivalent to COEP cors-or-credentialless from a security perspective.
+Depending on whether the mechanisms highlighted above are a common way of personalizing resources, this might be out-of-scope. What we want to defend against is unsuspecting websites being embedded and attacked by their embedder to steal user data. If the anonymous iframe is bent on escaping the constraints of anonymous iframes to personalize itself, then one can argue that it understands the contexts and risks it is loaded in and accepts them. Provided our security model is safe enough outside of anonymous iframes, the personalization will only affect resources that are same-origin with the iframe anyway. Cross-origin resources to the framed document will still be unpersonalized, making this equivalent to COEP:credentiallesss from a security perspective.
 
 ### Privacy
 
