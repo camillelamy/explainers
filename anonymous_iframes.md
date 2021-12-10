@@ -78,7 +78,7 @@ In parallel with the iframe attribute, we plan to add a new Fetch Metadata heade
 * `Sec-Fetch-COEP: credentialless`: the resource will be rendered in a context with a COEP of credentialless.
 * `Sec-Fetch-COEP: anonymous`: the resource will be rendered in an anonymous iframe.
 
-Additionally, we plan on adding a `document.anonymous` read-only attribute. By
+Additionally, we plan on adding a `window.anonymous` read-only attribute. By
 default, this will return `false`. In anonymous iframes it will return `true`,
 allowing a document to check whether it was loaded in an anonymous iframe.
 
@@ -198,7 +198,7 @@ This solution runs into compatibility issues:
 
 #### What information might this feature expose to Web sites or other parties, and for what purposes is that exposure necessary?
 
-The `Sec-Fetch-COEP` header exposes the COEP of the environment a resource will be rendered in. This allows a server to decline answering a request if they do not want their resource to be embedded in a more dangerous environment. The `Document.credentials` method exposes whether a document is loaded in an anonymous iframe or not, allowing a document to change its behavior depending on the availability of existing credentials or stored resources.
+The `Sec-Fetch-COEP` header exposes the COEP of the environment a resource will be rendered in. This allows a server to decline answering a request if they do not want their resource to be embedded in a more dangerous environment. The `window.anonymous` method exposes whether a document is loaded in an anonymous iframe or not, allowing a document to change its behavior depending on the availability of existing credentials or stored resources.
 
 #### Do features in your specification expose the minimum amount of information necessary to enable their intended uses?
 
