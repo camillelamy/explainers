@@ -2,7 +2,15 @@
 
 - **Author**: clamy@google.com, arthursonzogni@google.com
 - **Created**: 2021-05-06
-- **Last Updated**: 2021-11-10
+- **Last Updated**: 2022-04-07
+
+The content has been moved into its own repository:
+https://github.com/ArthurSonzogni/anonymous-iframe
+
+<details>
+
+   <summary>Access old content</summary>
+   
 
 ## Table of content
 - [A problem](#a-problem)
@@ -263,3 +271,6 @@ Yes.
 #### Do features in your specification enable origins to downgrade default security protections?
 
 This feature has no impact on secure context and same-origin policy. It does allow to use features which are right now gated behind having COOP and COEP enabled. However, it imposes restrictions on documents to make this safe.
+   
+</details>
+
